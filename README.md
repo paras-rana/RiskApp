@@ -7,6 +7,14 @@ It includes:
 - A NestJS API for risk, mitigation, and assessment workflows
 - PostgreSQL storage (Docker-ready)
 
+## Application Flow (Narrative)
+
+A typical workflow starts in the Risk Register, where a user captures a new risk with context such as category, ownership, status, and site/program. At this stage, the user records the inherent assessment (severity and probability) to represent the untreated level of exposure. Once saved, the system generates a risk ID, stores the record, and logs the assessment history.
+
+From there, the user opens the Risk Detail page to manage the risk over time. Mitigations are added as concrete actions, each with status, owner, timing, and expected effect on severity and/or probability. As understanding improves or controls are implemented, the user records reassessments, especially residual assessments, to reflect the current post-mitigation position.
+
+At the portfolio level, the Dashboard aggregates all risks into matrix views and summaries by category and department. Users can click matrix cells and summary rows to filter and investigate specific pockets of exposure. This creates a continuous loop: capture risk, assess baseline, execute mitigations, reassess residual exposure, and monitor trends across the organization.
+
 ## Functional Overview
 
 ### 1. Risk Register
