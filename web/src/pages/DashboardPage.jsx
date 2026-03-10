@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/useAuth';
+import AppFrame from '../components/AppFrame';
+import Icon from '../components/Icon';
 import RiskCountMatrix from '../components/RiskCountMatrix';
-
-const API_BASE = 'http://localhost:3000';
+import { apiFetch } from '../lib/api';
 const PAGE_SIZE = 20;
 
 // Used when the API row has no explicit department value.
@@ -66,6 +68,8 @@ function toggleStringFilter(list, value) {
 }
 
 export default function DashboardPage() {
+  const { token, logout } = useAuth();
+  const navigate = useNavigate();
   // Core page and loading state.
   const [risks, setRisks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +88,7 @@ export default function DashboardPage() {
         setLoading(true);
         setError('');
 
-        const res = await fetch(`${API_BASE}/risks`);
+        const res = await apiFetch('/risks', { token, onUnauthorized: logout });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
@@ -97,7 +101,7 @@ export default function DashboardPage() {
     }
 
     void loadRisks();
-  }, []);
+  }, [token, logout]);
 
   // Changing basis invalidates any old matrix/category/department selections.
   useEffect(() => {
@@ -342,24 +346,20 @@ export default function DashboardPage() {
     selectedDepartments.length > 0;
 
   return (
-    <div className="app-shell">
-      <header className="page-header">
-        <h1>Risk Dashboard</h1>
-        <p>Matrix distribution view with clickable cells and category risk-band summary.</p>
-      </header>
-
-      <div className="top-nav">
-        <Link className="nav-link active" to="/dashboard">
-          Dashboard
-        </Link>
-        <Link className="nav-link" to="/risks">
-          Risk Register
-        </Link>
-      </div>
+    <AppFrame
+      title="Risk Dashboard"
+      description="Matrix distribution view with clickable cells and category risk-band summary."
+      topNavActions={(
+        <button type="button" className="primary-btn" onClick={() => navigate('/risks')}>
+          <Icon name="plus" />
+          Add New Risk
+        </button>
+      )}
+    >
 
       <section className="panel">
         <div className="panel-header-row">
-          <h2>Dashboard Controls</h2>
+          <h2><Icon name="filter" />Dashboard Controls</h2>
           <div className="basis-switch">
             <label>
               Matrix Basis
@@ -424,6 +424,10 @@ export default function DashboardPage() {
         <>
           <div className="dashboard-grid">
             <section className="panel">
+              <div className="section-title">
+                <Icon name="matrix" />
+                <span>Risk Matrix</span>
+              </div>
               <div className="selection-badge-row">
                 {selectedCells.length === 0 ? (
                   <span className="selection-badge is-empty">All cells</span>
@@ -464,7 +468,7 @@ export default function DashboardPage() {
             </section>
 
             <section className="panel">
-              <h2>Category Summary</h2>
+              <h2><Icon name="category" />Category Summary</h2>
               <p className="muted summary-note">
                 Counts by category grouped into Low / Medium / High.
                 {selectedCells.length > 0 ? ' (Filtered to selected matrix cells)' : ''}
@@ -511,7 +515,7 @@ export default function DashboardPage() {
             </section>
 
             <section className="panel">
-              <h2>Department Summary</h2>
+              <h2><Icon name="department" />Department Summary</h2>
               <p className="muted summary-note">
                 Counts by department grouped into Low / Medium / High.
                 {selectedCells.length > 0 ? ' (Filtered to selected matrix cells)' : ''}
@@ -563,7 +567,7 @@ export default function DashboardPage() {
 
           <section className="panel">
             <div className="panel-header-row">
-              <h2>{hasSelection ? 'Risks in Selected Filters' : 'Risks in Dashboard View'}</h2>
+              <h2><Icon name="risk" />{hasSelection ? 'Risks in Selected Filters' : 'Risks in Dashboard View'}</h2>
 
               <div className="muted">
                 {selectedSummaryText} | Page {page} of {totalPages} - {PAGE_SIZE} per page
@@ -580,6 +584,7 @@ export default function DashboardPage() {
                     <th>Title</th>
                     <th>Category</th>
                     <th>Status</th>
+                    <th>Risk Level</th>
                     <th>Score</th>
                     <th>Open</th>
                   </tr>
@@ -587,7 +592,7 @@ export default function DashboardPage() {
                 <tbody>
                   {selectedCells.length === 0 && filteredRisks.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="muted">
+                      <td colSpan={7} className="muted">
                         No risks available for this view.
                       </td>
                     </tr>
@@ -595,7 +600,7 @@ export default function DashboardPage() {
 
                   {selectedCells.length > 0 && filteredRisks.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="muted">
+                      <td colSpan={7} className="muted">
                         No risks in the selected matrix cells.
                       </td>
                     </tr>
@@ -611,6 +616,11 @@ export default function DashboardPage() {
                         <td>{risk.title}</td>
                         <td>{risk.category}</td>
                         <td>{risk.status}</td>
+                        <td>
+                          <span className={`pill ${getBand(axes.score)}`}>
+                            {getBand(axes.score)}
+                          </span>
+                        </td>
                         <td>
                           S{axes.severity}/P{axes.probability} ({axes.score})
                         </td>
@@ -660,6 +670,6 @@ export default function DashboardPage() {
           </section>
         </>
       )}
-    </div>
+    </AppFrame>
   );
 }

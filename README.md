@@ -5,6 +5,7 @@ RiskApp is a full-stack Enterprise Risk Management (ERM) application for creatin
 It includes:
 - A React dashboard and risk register UI
 - A NestJS API for risk, mitigation, and assessment workflows
+- Token-based login with a seeded admin account for local development
 - PostgreSQL storage (Docker-ready)
 
 ## Application Flow (Narrative)
@@ -76,6 +77,13 @@ Note: API queries target the `erm` schema (for example `erm.risks`, `erm.mitigat
 
 Base URL: `http://localhost:3000`
 
+Authentication:
+- `POST /auth/login`
+  - Public endpoint that returns a bearer token and current user details
+- `GET /auth/me`
+  - Returns the authenticated user for the supplied bearer token
+- All `/risks` endpoints now require `Authorization: Bearer <token>`
+
 - `GET /risks`
   - List up to 500 risks for register/dashboard views
 - `POST /risks`
@@ -131,7 +139,13 @@ Create `api/.env` with:
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/riskapp?schema=erm"
+AUTH_TOKEN_SECRET="replace-this-for-non-local-use"
+ADMIN_EMAIL="admin@riskapp.local"
+ADMIN_PASSWORD="Admin123!"
+ADMIN_NAME="Risk Administrator"
 ```
+
+On startup, the API creates `erm.app_users` if it does not exist and seeds the admin user above when missing.
 
 ### 3. Install dependencies
 
@@ -161,8 +175,16 @@ npm run dev
 
 UI runs at `http://localhost:5173`.
 
+### 6. Sign in
+
+Use the seeded local admin account:
+
+- Email: `admin@riskapp.local`
+- Password: `Admin123!`
+
 ## UI Routes
 
+- `/login` - login page for the local admin user
 - `/dashboard` - matrix analytics and filtered summaries
 - `/risks` - risk register with create drawer and filters
 - `/risks/:riskId` - risk detail with mitigation and assessment management

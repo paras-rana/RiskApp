@@ -31,6 +31,7 @@ const DEFAULT_DEPARTMENT_BY_CATEGORY: Record<string, string> = {
 type RiskRow = {
   risk_id: string;
   title: string;
+  description: string | null;
   category: string;
   department: string | null;
   status: string;
@@ -172,6 +173,7 @@ export class RisksService {
       SELECT
         risk_id,
         title,
+        description,
         category,
         COALESCE(
           department,

@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
-const API_BASE = 'http://localhost:3000';
+import { useAuth } from '../auth/useAuth';
+import AppFrame from '../components/AppFrame';
+import Icon from '../components/Icon';
+import { apiFetch } from '../lib/api';
 const PAGE_SIZE = 20;
 
 const DEFAULT_DEPARTMENT_BY_CATEGORY = {
@@ -56,6 +58,7 @@ function getErrorMessage(err) {
 }
 
 export default function RiskRegisterPage() {
+  const { token, logout } = useAuth();
   // Main page + list state.
   const [risks, setRisks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,12 +79,12 @@ export default function RiskRegisterPage() {
 
   const navigate = useNavigate();
 
-  async function loadRisks() {
+  const loadRisks = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      const res = await fetch(`${API_BASE}/risks`);
+      const res = await apiFetch('/risks', { token, onUnauthorized: logout });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
@@ -91,11 +94,11 @@ export default function RiskRegisterPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [token, logout]);
 
   useEffect(() => {
     void loadRisks();
-  }, []);
+  }, [loadRisks]);
 
   const categories = useMemo(() => {
     const values = new Set(risks.map((risk) => risk.category).filter(Boolean));
@@ -178,8 +181,10 @@ export default function RiskRegisterPage() {
           form.residual_probability === '' ? null : Number(form.residual_probability),
       };
 
-      const res = await fetch(`${API_BASE}/risks`, {
+      const res = await apiFetch('/risks', {
         method: 'POST',
+        token,
+        onUnauthorized: logout,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -204,25 +209,16 @@ export default function RiskRegisterPage() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="page-header">
-        <h1>Risk Register</h1>
-        <p>Manage risks and open each risk&apos;s detail page.</p>
-      </header>
-
-      <div className="top-nav">
-        <Link className="nav-link" to="/dashboard">
-          Dashboard
-        </Link>
-        <Link className="nav-link active" to="/risks">
-          Risk Register
-        </Link>
-      </div>
+    <AppFrame
+      title="Risk Register"
+      description="Manage risks and open each risk&apos;s detail page."
+    >
 
       <section className="panel">
         <div className="panel-header-row">
-          <h2>Filters</h2>
+          <h2><Icon name="filter" />Filters</h2>
           <button className="primary-btn" onClick={() => setShowDrawer(true)}>
+            <Icon name="plus" />
             Add New Risk
           </button>
         </div>
@@ -289,7 +285,7 @@ export default function RiskRegisterPage() {
 
       <section className="panel">
         <div className="panel-header-row">
-          <h2>Risks ({filteredRisks.length})</h2>
+          <h2><Icon name="risk" />Risks ({filteredRisks.length})</h2>
           <div className="muted">
             Page {page} of {totalPages} - {PAGE_SIZE} per page
           </div>
@@ -309,7 +305,7 @@ export default function RiskRegisterPage() {
                     <th>Category</th>
                     <th>Department</th>
                     <th>Status</th>
-                    <th>Band</th>
+                    <th>Risk Level</th>
                     <th>Owner</th>
                     <th>Inherent</th>
                     <th>Residual</th>
@@ -575,6 +571,6 @@ export default function RiskRegisterPage() {
           </form>
         </aside>
       </div>
-    </div>
+    </AppFrame>
   );
 }

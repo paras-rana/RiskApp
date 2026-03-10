@@ -1,8 +1,10 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../auth/useAuth';
+import AppFrame from '../components/AppFrame';
+import Icon from '../components/Icon';
 import RiskMatrix from '../components/RiskMatrix';
-
-const API_BASE = 'http://localhost:3000';
+import { apiFetch } from '../lib/api';
 
 const initialMitigationForm = {
   title: '',
@@ -28,16 +30,12 @@ const initialAssessmentForm = {
   notes: '',
 };
 
-function getMitigationDirectionLabel(mitigation) {
-  if (!mitigation) return 'Select a mitigation row to see how it helps';
+function renderImpactIcon(impacts) {
+  if (impacts) {
+    return <Icon name="arrowDown" className="impact-icon impact-icon-down" />;
+  }
 
-  const sev = mitigation.impacts_severity;
-  const prob = mitigation.impacts_probability;
-
-  if (sev && prob) return 'down Severity and down Probability';
-  if (sev) return 'down Severity';
-  if (prob) return 'down Probability';
-  return 'No direct scoring impact';
+  return <Icon name="minus" className="impact-icon impact-icon-flat" />;
 }
 
 function getErrorMessage(err) {
@@ -52,6 +50,7 @@ function toDateInputValue(value) {
 
 export default function RiskDetailPage() {
   const { riskId } = useParams();
+  const { token, logout } = useAuth();
 
   // Primary page data state.
   const [detail, setDetail] = useState(null);
@@ -103,7 +102,10 @@ export default function RiskDetailPage() {
       setSelectedMitigationId(null);
       setSelectedAssessmentId(null);
 
-      const res = await fetch(`${API_BASE}/risks/${riskId}/detail`);
+      const res = await apiFetch(`/risks/${riskId}/detail`, {
+        token,
+        onUnauthorized: logout,
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
@@ -113,18 +115,11 @@ export default function RiskDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [riskId]);
+  }, [riskId, token, logout]);
 
   useEffect(() => {
     void loadDetail();
   }, [loadDetail]);
-
-  const selectedMitigation = useMemo(() => {
-    if (!detail || !selectedMitigationId) return null;
-    return (
-      detail.mitigations.find((m) => m.mitigation_id === selectedMitigationId) || null
-    );
-  }, [detail, selectedMitigationId]);
 
   const selectedAssessment = useMemo(() => {
     if (!detail || !selectedAssessmentId) return null;
@@ -134,30 +129,35 @@ export default function RiskDetailPage() {
   }, [detail, selectedAssessmentId]);
 
   // Opens mitigation drawer in "edit existing mitigation" mode.
-  function openMitigationEditor(mitigation = selectedMitigation) {
-    if (!mitigation) return;
+  function openMitigationEditor(mitigation) {
+    const selectedMitigation =
+      mitigation ??
+      detail?.mitigations.find((item) => item.mitigation_id === selectedMitigationId) ??
+      null;
+
+    if (!selectedMitigation) return;
 
     setAssessmentError('');
     setMitigationError('');
     setEditingAssessmentId(null);
-    setEditingMitigationId(mitigation.mitigation_id);
+    setEditingMitigationId(selectedMitigation.mitigation_id);
     setMitigationForm({
-      title: mitigation.title ?? '',
-      status: mitigation.status ?? 'Planned',
-      mitigation_owner_name: mitigation.mitigation_owner_name ?? '',
-      start_date: toDateInputValue(mitigation.start_date),
-      due_date: toDateInputValue(mitigation.due_date),
-      completed_date: toDateInputValue(mitigation.completed_date),
-      impacts_severity: Boolean(mitigation.impacts_severity),
-      impacts_probability: Boolean(mitigation.impacts_probability),
-      confidence_level: mitigation.confidence_level ?? 'Medium',
-      control_type: mitigation.control_type ?? 'Preventive',
+      title: selectedMitigation.title ?? '',
+      status: selectedMitigation.status ?? 'Planned',
+      mitigation_owner_name: selectedMitigation.mitigation_owner_name ?? '',
+      start_date: toDateInputValue(selectedMitigation.start_date),
+      due_date: toDateInputValue(selectedMitigation.due_date),
+      completed_date: toDateInputValue(selectedMitigation.completed_date),
+      impacts_severity: Boolean(selectedMitigation.impacts_severity),
+      impacts_probability: Boolean(selectedMitigation.impacts_probability),
+      confidence_level: selectedMitigation.confidence_level ?? 'Medium',
+      control_type: selectedMitigation.control_type ?? 'Preventive',
       estimated_cost:
-        mitigation.estimated_cost == null
+        selectedMitigation.estimated_cost == null
           ? ''
-          : String(mitigation.estimated_cost),
-      plan_url: mitigation.plan_url ?? '',
-      notes: mitigation.notes ?? '',
+          : String(selectedMitigation.estimated_cost),
+      plan_url: selectedMitigation.plan_url ?? '',
+      notes: selectedMitigation.notes ?? '',
     });
     setActiveForm('mitigation');
   }
@@ -233,11 +233,13 @@ export default function RiskDetailPage() {
 
       const isEditing = Boolean(editingMitigationId);
       const endpoint = isEditing
-        ? `${API_BASE}/risks/${riskId}/mitigations/${editingMitigationId}`
-        : `${API_BASE}/risks/${riskId}/mitigations`;
+        ? `/risks/${riskId}/mitigations/${editingMitigationId}`
+        : `/risks/${riskId}/mitigations`;
 
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: isEditing ? 'PUT' : 'POST',
+        token,
+        onUnauthorized: logout,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -280,11 +282,13 @@ export default function RiskDetailPage() {
 
       const isEditing = Boolean(editingAssessmentId);
       const endpoint = isEditing
-        ? `${API_BASE}/risks/${riskId}/assessments/${editingAssessmentId}`
-        : `${API_BASE}/risks/${riskId}/assessments`;
+        ? `/risks/${riskId}/assessments/${editingAssessmentId}`
+        : `/risks/${riskId}/assessments`;
 
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: isEditing ? 'PUT' : 'POST',
+        token,
+        onUnauthorized: logout,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -312,21 +316,11 @@ export default function RiskDetailPage() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="page-header">
-        <h1>Risk Detail</h1>
-        <p>Review scoring, mitigations, and assessments for one risk.</p>
-      </header>
-
-      <div className="top-nav">
-        <Link className="nav-link" to="/dashboard">
-          Dashboard
-        </Link>
-        <Link className="nav-link" to="/risks">
-          Risk Register
-        </Link>
-        <span className="nav-link active">Risk Detail</span>
-      </div>
+    <AppFrame
+      title="Risk Detail"
+      description="Review scoring, mitigations, and assessments for one risk."
+      detailLabel="Risk Detail"
+    >
 
       <section className="panel detail-panel">
         {loading && <p>Loading detail...</p>}
@@ -334,56 +328,18 @@ export default function RiskDetailPage() {
 
         {!loading && !error && detail && (
           <>
-            <div className="selected-id">
-              Risk: <strong>{detail.risk.risk_id}</strong>
-            </div>
-
-            <div className="cards">
-              <div className="card">
-                <div className="label">Inherent</div>
-                <div className="value">
-                  S{detail.risk.inherent_severity} x P{detail.risk.inherent_probability} ={' '}
-                  {detail.risk.inherent_score}
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="label">Residual</div>
-                <div className="value">
-                  {detail.risk.residual_severity != null &&
-                  detail.risk.residual_probability != null
-                    ? `S${detail.risk.residual_severity} x P${detail.risk.residual_probability} = ${detail.risk.residual_score}`
-                    : 'Not reassessed'}
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="label">Mitigations</div>
-                <div className="value">{detail.mitigations.length}</div>
-              </div>
-
-              <div className="card">
-                <div className="label">Assessments</div>
-                <div className="value">{detail.assessments.length}</div>
-              </div>
-            </div>
-
-            <div className="detail-block">
-              <h3>{detail.risk.title}</h3>
+            <div className="detail-block detail-section-banded">
+              <h3 className="risk-heading">
+                <strong>{detail.risk.risk_id}</strong>
+                <span>{detail.risk.title}</span>
+              </h3>
+              <p className="risk-description">
+                {detail.risk.description?.trim() || 'No risk description provided.'}
+              </p>
               <p className="muted">
                 {detail.risk.category} - {detail.risk.status} -{' '}
                 {detail.risk.site_or_program ?? 'No site/program'}
               </p>
-
-              <div className="detail-actions-row">
-                <button className="secondary-btn" onClick={openNewMitigationForm}>
-                  {isMitigationOpen ? 'Close Mitigation Form' : 'Add Mitigation'}
-                </button>
-
-                <button className="secondary-btn" onClick={openNewAssessmentForm}>
-                  {isAssessmentOpen ? 'Close Assessment Form' : 'Add Assessment'}
-                </button>
-              </div>
             </div>
 
             <div className="matrix-row">
@@ -391,105 +347,37 @@ export default function RiskDetailPage() {
                 title="Inherent Risk"
                 severity={detail.risk.inherent_severity}
                 probability={detail.risk.inherent_probability}
-                subtitle="Initial assessment"
               />
 
               <RiskMatrix
                 title="Residual Risk"
                 severity={detail.risk.residual_severity}
                 probability={detail.risk.residual_probability}
-                subtitle="Owner reassessment"
               />
             </div>
 
-            <div className="detail-block">
-              <h3>Selected Mitigation Influence</h3>
-              <div className="direction-callout">
-                <div className="direction-value">
-                  {getMitigationDirectionLabel(selectedMitigation)}
-                </div>
-
-                {selectedMitigation ? (
-                  <div className="direction-subtext">
-                    {selectedMitigation.title} ({selectedMitigation.status})
-                  </div>
-                ) : (
-                  <div className="direction-subtext">Click a mitigation row below.</div>
-                )}
+            <div className="detail-block detail-section-banded">
+              <div className="panel-header-row">
+                <h3><Icon name="assessment" />Assessments</h3>
+                <button className="secondary-btn" onClick={openNewAssessmentForm}>
+                  <Icon name="plus" />
+                  {isAssessmentOpen ? 'Close Assessment Form' : 'Add Assessment'}
+                </button>
               </div>
-            </div>
-
-            <div className="detail-block">
-              <h3>Mitigations</h3>
-              {detail.mitigations.length === 0 ? (
-                <p className="muted">No mitigations found.</p>
-              ) : (
-                <div className="table-wrap">
-                  <table className="simple-table">
-                    <thead>
-                      <tr>
-                        <th>Mitigation</th>
-                        <th>Status</th>
-                        <th>Severity</th>
-                        <th>Probability</th>
-                        <th>Due</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.mitigations.map((m) => (
-                        <tr
-                          key={m.mitigation_id}
-                          className={
-                            selectedMitigationId === m.mitigation_id ? 'row-selected' : ''
-                          }
-                          onClick={() => setSelectedMitigationId(m.mitigation_id)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td>{m.title}</td>
-                          <td>{m.status}</td>
-                          <td>{m.impacts_severity ? 'down' : '-'}</td>
-                          <td>{m.impacts_probability ? 'down' : '-'}</td>
-                          <td>
-                            {m.due_date ? new Date(m.due_date).toLocaleDateString() : '-'}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="secondary-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedMitigationId(m.mitigation_id);
-                                openMitigationEditor(m);
-                              }}
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="detail-block">
-              <h3>Assessments</h3>
               {detail.assessments.length === 0 ? (
                 <p className="muted">No assessments found.</p>
               ) : (
                 <div className="table-wrap">
-                  <table className="simple-table">
+                  <table className="simple-table assessment-table">
                     <thead>
                       <tr>
                         <th>Type</th>
                         <th>Severity</th>
                         <th>Probability</th>
-                        <th>Score</th>
+                        <th className="assessment-score-heading">Score</th>
                         <th>Assessed By</th>
                         <th>Assessed At</th>
-                        <th>Action</th>
+                        <th className="action-column">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -505,10 +393,10 @@ export default function RiskDetailPage() {
                           <td>{a.assessment_type}</td>
                           <td>{a.severity}</td>
                           <td>{a.probability}</td>
-                          <td>{a.score}</td>
+                          <td className="assessment-score-cell">{a.score}</td>
                           <td>{a.assessed_by}</td>
                           <td>{new Date(a.assessed_at).toLocaleString()}</td>
-                          <td>
+                          <td className="action-column">
                             <button
                               type="button"
                               className="secondary-btn"
@@ -516,6 +404,69 @@ export default function RiskDetailPage() {
                                 e.stopPropagation();
                                 setSelectedAssessmentId(a.assessment_id);
                                 openAssessmentEditor(a);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="detail-block detail-section-banded">
+              <div className="panel-header-row">
+                <h3><Icon name="mitigations" />Mitigations</h3>
+                <button className="secondary-btn" onClick={openNewMitigationForm}>
+                  <Icon name="plus" />
+                  {isMitigationOpen ? 'Close Mitigation Form' : 'Add Mitigation'}
+                </button>
+              </div>
+              {detail.mitigations.length === 0 ? (
+                <p className="muted">No mitigations found.</p>
+              ) : (
+                <div className="table-wrap">
+                  <table className="simple-table mitigation-table">
+                    <thead>
+                      <tr>
+                        <th>Mitigation</th>
+                        <th>Status</th>
+                        <th className="impact-column">Severity</th>
+                        <th className="impact-column">Probability</th>
+                        <th>Due</th>
+                        <th className="action-column">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.mitigations.map((m) => (
+                        <tr
+                          key={m.mitigation_id}
+                          className={
+                            selectedMitigationId === m.mitigation_id ? 'row-selected' : ''
+                          }
+                          onClick={() => setSelectedMitigationId(m.mitigation_id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td>{m.title}</td>
+                          <td>{m.status}</td>
+                          <td className="impact-column">{renderImpactIcon(m.impacts_severity)}</td>
+                          <td className="impact-column">
+                            {renderImpactIcon(m.impacts_probability)}
+                          </td>
+                          <td>
+                            {m.due_date ? new Date(m.due_date).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="action-column">
+                            <button
+                              type="button"
+                              className="secondary-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMitigationId(m.mitigation_id);
+                                openMitigationEditor(m);
                               }}
                             >
                               Edit
@@ -856,6 +807,6 @@ export default function RiskDetailPage() {
           )}
         </aside>
       </div>
-    </div>
+    </AppFrame>
   );
 }
