@@ -1,9 +1,12 @@
 # RiskApp
 
-RiskApp is a full-stack Enterprise Risk Management (ERM) application for creating, scoring, tracking, and reassessing organizational risks.
+RiskApp is a full-stack application with two workspaces:
+- Enterprise Risk Management (ERM) for creating, scoring, tracking, and reassessing organizational risks
+- Portfolio and Project Management (PPM) for submitting, reviewing, prioritizing, and tracking project proposals and active work
 
 It includes:
 - A React dashboard and risk register UI
+- A portfolio management workspace with proposal intake, review, future pipeline, and current project views
 - A NestJS API for risk, mitigation, and assessment workflows
 - Token-based login with a seeded admin account for local development
 - PostgreSQL storage (Docker-ready)
@@ -39,6 +42,13 @@ At the portfolio level, the Dashboard aggregates all risks into matrix views and
 - Mark mitigation directional impact flags (reduces severity and/or probability).
 - Add/edit assessments (INHERENT or RESIDUAL) with scorer and rationale.
 - Residual assessments update residual risk values and reassessment timestamp.
+
+### 4. Portfolio Intake and Review
+- Submit new project proposals in structured sections for summary, resources, schedule, assumptions, risks, and attachments.
+- Review submitted proposals from a dedicated queue with proposal detail pages and decision actions.
+- Route proposals to current projects, future projects, archive, or keep them in the queue as WIP.
+- Track approved work as either `Major project` or `Operations Initiative`.
+- Export project detail slides with status, milestones, risks, and a milestone timeline visual.
 
 ## Tech Stack
 
@@ -188,6 +198,13 @@ Use the seeded local admin account:
 - `/dashboard` - matrix analytics and filtered summaries
 - `/risks` - risk register with create drawer and filters
 - `/risks/:riskId` - risk detail with mitigation and assessment management
+- `/ppm/submit` - submit a new project proposal
+- `/ppm/review` - proposal review queue
+- `/ppm/review/:projectId` - detailed proposal review page
+- `/ppm/future` - future pipeline and archived proposals
+- `/ppm/current` - current projects grouped by classification
+- `/ppm/projects/:projectId` - project detail and PowerPoint export
+- `/ppm/strategic-priorities` - strategic priority period management
 
 ## Notes
 

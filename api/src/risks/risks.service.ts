@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -27,6 +28,217 @@ const DEFAULT_DEPARTMENT_BY_CATEGORY: Record<string, string> = {
   IT: 'Technology',
   Facilities: 'Facilities',
 };
+
+const SEEDED_PROJECT_RISKS: CreateRiskInput[] = [
+  {
+    title: 'Digital adoption lags in pilot clinics',
+    description:
+      'Patient self-service enrollment could trail plan and reduce the expected access improvement from the digital front door launch.',
+    category: 'Clinical',
+    owner_name: 'Alicia Gomez',
+    owner_email: 'alicia.gomez@riskapp.local',
+    site_or_program: 'PRJ-201',
+    status: 'Mitigating',
+    inherent_severity: 4,
+    inherent_probability: 4,
+    residual_severity: 3,
+    residual_probability: 3,
+    residual_notes: 'Pilot training and targeted clinic support are in flight.',
+    next_review_due: '2026-04-10',
+  },
+  {
+    title: 'Scheduling integration defects delay cutover',
+    description:
+      'Integration gaps between intake, scheduling, and downstream systems could push back the pilot launch.',
+    category: 'IT',
+    owner_name: 'Alicia Gomez',
+    owner_email: 'alicia.gomez@riskapp.local',
+    site_or_program: 'PRJ-201',
+    status: 'Open',
+    inherent_severity: 5,
+    inherent_probability: 3,
+    residual_severity: 4,
+    residual_probability: 2,
+    residual_notes: 'Interface testing is planned before pilot cutover.',
+    next_review_due: '2026-04-17',
+  },
+  {
+    title: 'Frontline staffing model adoption is inconsistent',
+    description:
+      'Ambulatory leaders may apply redesigned staffing templates unevenly, reducing expected labor productivity gains.',
+    category: 'Workforce',
+    owner_name: 'M. Patel',
+    owner_email: 'm.patel@riskapp.local',
+    site_or_program: 'PRJ-214',
+    status: 'Monitoring',
+    inherent_severity: 4,
+    inherent_probability: 3,
+    residual_severity: 3,
+    residual_probability: 2,
+    residual_notes: 'Weekly site review cadence is in place.',
+    next_review_due: '2026-04-08',
+  },
+  {
+    title: 'Analytics data quality weakens staffing recommendations',
+    description:
+      'Source schedule and labor data inconsistencies could undermine confidence in optimization outputs.',
+    category: 'Operations',
+    owner_name: 'M. Patel',
+    owner_email: 'm.patel@riskapp.local',
+    site_or_program: 'PRJ-214',
+    status: 'Mitigating',
+    inherent_severity: 4,
+    inherent_probability: 4,
+    residual_severity: 3,
+    residual_probability: 3,
+    residual_notes: 'Data validation checks are being added before broader rollout.',
+    next_review_due: '2026-04-15',
+  },
+  {
+    title: 'Premium labor savings are not realized on schedule',
+    description:
+      'Even with new staffing workflows, sites may continue overtime and agency usage above plan for multiple quarters.',
+    category: 'Finance',
+    owner_name: 'M. Patel',
+    owner_email: 'm.patel@riskapp.local',
+    site_or_program: 'PRJ-214',
+    status: 'Open',
+    inherent_severity: 3,
+    inherent_probability: 4,
+    residual_severity: 2,
+    residual_probability: 3,
+    residual_notes: 'Savings tracking dashboard will be reviewed monthly.',
+    next_review_due: '2026-04-22',
+  },
+  {
+    title: 'AI exception routing misclassifies high-value claims',
+    description:
+      'Automation logic could route claims incorrectly and create avoidable denials or delayed collections.',
+    category: 'Finance',
+    owner_name: 'Jordan Lee',
+    owner_email: 'jordan.lee@riskapp.local',
+    site_or_program: 'PRJ-223',
+    status: 'Mitigating',
+    inherent_severity: 5,
+    inherent_probability: 3,
+    residual_severity: 3,
+    residual_probability: 2,
+    residual_notes: 'Exception thresholds and human review gates are being tuned.',
+    next_review_due: '2026-04-12',
+  },
+  {
+    title: 'Collector workflow redesign stalls user adoption',
+    description:
+      'Revenue cycle teams may keep legacy workqueue habits and limit the value of AI-assisted triage.',
+    category: 'Operations',
+    owner_name: 'Jordan Lee',
+    owner_email: 'jordan.lee@riskapp.local',
+    site_or_program: 'PRJ-223',
+    status: 'Monitoring',
+    inherent_severity: 3,
+    inherent_probability: 4,
+    residual_severity: 2,
+    residual_probability: 3,
+    residual_notes: 'Super-user training and adoption tracking are planned.',
+    next_review_due: '2026-04-19',
+  },
+  {
+    title: 'Vendor model transparency is insufficient for compliance review',
+    description:
+      'Opaque AI decision logic could slow approval and limit use in production denial-prevention workflows.',
+    category: 'Compliance',
+    owner_name: 'Jordan Lee',
+    owner_email: 'jordan.lee@riskapp.local',
+    site_or_program: 'PRJ-223',
+    status: 'Open',
+    inherent_severity: 4,
+    inherent_probability: 3,
+    residual_severity: 3,
+    residual_probability: 2,
+    residual_notes: 'Model review artifacts are being requested from the vendor.',
+    next_review_due: '2026-04-26',
+  },
+  {
+    title: 'Supply master data gaps reduce visibility accuracy',
+    description:
+      'Inconsistent item and vendor master records could weaken the reliability of the new supply chain operating view.',
+    category: 'Operations',
+    owner_name: 'Rina Shah',
+    owner_email: 'rina.shah@riskapp.local',
+    site_or_program: 'PRJ-230',
+    status: 'Open',
+    inherent_severity: 4,
+    inherent_probability: 4,
+    residual_severity: 3,
+    residual_probability: 3,
+    residual_notes: 'Data normalization requirements are being defined in discovery.',
+    next_review_due: '2026-04-11',
+  },
+  {
+    title: 'Shortage alerting arrives too late to avoid disruption',
+    description:
+      'If inbound signals are delayed or incomplete, clinical teams may still face preventable supply interruptions.',
+    category: 'Clinical',
+    owner_name: 'Rina Shah',
+    owner_email: 'rina.shah@riskapp.local',
+    site_or_program: 'PRJ-230',
+    status: 'Monitoring',
+    inherent_severity: 4,
+    inherent_probability: 3,
+    residual_severity: 3,
+    residual_probability: 2,
+    residual_notes: 'Escalation workflows are being designed with operations leaders.',
+    next_review_due: '2026-04-18',
+  },
+  {
+    title: 'Privileged access remediation slips past committed windows',
+    description:
+      'Core platform owners may not complete privileged identity remediation in time to reduce cyber exposure materially.',
+    category: 'IT',
+    owner_name: 'Chris Nolan',
+    owner_email: 'chris.nolan@riskapp.local',
+    site_or_program: 'PRJ-233',
+    status: 'Mitigating',
+    inherent_severity: 5,
+    inherent_probability: 4,
+    residual_severity: 4,
+    residual_probability: 2,
+    residual_notes: 'Wave planning and executive checkpoints have been established.',
+    next_review_due: '2026-04-09',
+  },
+  {
+    title: 'Recovery testing exposes unresolved resilience gaps',
+    description:
+      'Planned recovery exercises may reveal material dependencies that require more funding or sequencing changes.',
+    category: 'IT',
+    owner_name: 'Chris Nolan',
+    owner_email: 'chris.nolan@riskapp.local',
+    site_or_program: 'PRJ-233',
+    status: 'Open',
+    inherent_severity: 5,
+    inherent_probability: 3,
+    residual_severity: 4,
+    residual_probability: 2,
+    residual_notes: 'Recovery scope and fallback procedures are under review.',
+    next_review_due: '2026-04-16',
+  },
+  {
+    title: 'Audit evidence is insufficient for control uplift claims',
+    description:
+      'Control implementation may outpace evidence capture, creating residual compliance and audit exposure.',
+    category: 'Compliance',
+    owner_name: 'Chris Nolan',
+    owner_email: 'chris.nolan@riskapp.local',
+    site_or_program: 'PRJ-233',
+    status: 'Monitoring',
+    inherent_severity: 4,
+    inherent_probability: 3,
+    residual_severity: 2,
+    residual_probability: 2,
+    residual_notes: 'Evidence standards are being documented before rollout accelerates.',
+    next_review_due: '2026-04-23',
+  },
+];
 
 type RiskRow = {
   risk_id: string;
@@ -164,8 +376,12 @@ type AssessmentRow = {
 };
 
 @Injectable()
-export class RisksService {
+export class RisksService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.ensureSeededProjectRisks();
+  }
 
   // Returns up to 500 risks for register/dashboard pages.
   async findAll() {
@@ -996,5 +1212,23 @@ export class RisksService {
 
       return insertedRows[0];
     });
+  }
+
+  private async ensureSeededProjectRisks(): Promise<void> {
+    for (const risk of SEEDED_PROJECT_RISKS) {
+      const existingRows = await this.prisma.$queryRaw<{ risk_id: string }[]>`
+        SELECT risk_id
+        FROM erm.risks
+        WHERE title = ${risk.title ?? ''}
+          AND site_or_program = ${risk.site_or_program ?? null}
+        LIMIT 1
+      `;
+
+      if (existingRows[0]?.risk_id) {
+        continue;
+      }
+
+      await this.createRisk(risk);
+    }
   }
 }

@@ -187,7 +187,7 @@ export class AuthService implements OnModuleInit {
   private async ensureAdminUser(): Promise<void> {
     const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@riskapp.local').trim().toLowerCase();
     const adminPassword = process.env.ADMIN_PASSWORD ?? 'Admin123!';
-    const adminName = (process.env.ADMIN_NAME ?? 'Risk Administrator').trim() || null;
+    const adminName = (process.env.ADMIN_NAME ?? 'Super User').trim() || null;
 
     const rows = await this.prisma.$queryRaw<{ user_id: string }[]>`
       SELECT user_id
@@ -197,6 +197,11 @@ export class AuthService implements OnModuleInit {
     `;
 
     if (rows[0]?.user_id) {
+      await this.prisma.$executeRaw`
+        UPDATE erm.app_users
+        SET full_name = ${adminName}
+        WHERE email = ${adminEmail}
+      `;
       return;
     }
 
@@ -220,3 +225,4 @@ export class AuthService implements OnModuleInit {
     this.logger.log(`Seeded default admin user: ${adminEmail}`);
   }
 }
+

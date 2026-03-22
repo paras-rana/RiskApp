@@ -7,10 +7,19 @@ import {
 } from 'react-router-dom';
 import './App.css';
 import { useAuth } from './auth/useAuth';
+import { WORKSPACES } from './lib/workspace';
+import CurrentProjectsPage from './pages/CurrentProjectsPage';
 import DashboardPage from './pages/DashboardPage';
+import FutureProjectsPage from './pages/FutureProjectsPage';
 import LoginPage from './pages/LoginPage';
+import PortfolioDashboardPage from './pages/PortfolioDashboardPage';
+import ProposalReviewPage from './pages/ProposalReviewPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
 import RiskRegisterPage from './pages/RiskRegisterPage';
 import RiskDetailPage from './pages/RiskDetailPage';
+import StrategicPrioritiesPage from './pages/StrategicPrioritiesPage';
+import SubmissionReviewPage from './pages/SubmissionReviewPage';
+import SubmitProjectPage from './pages/SubmitProjectPage';
 
 function RequireAuth({ children }) {
   const { authReady, isAuthenticated } = useAuth();
@@ -27,6 +36,21 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function RequireWorkspace({ allowed, children }) {
+  const { workspace } = useAuth();
+
+  if (!allowed.includes(workspace)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
+function DashboardRoute() {
+  const { workspace } = useAuth();
+  return workspace === WORKSPACES.PPM ? <PortfolioDashboardPage /> : <DashboardPage />;
+}
+
 export default function App() {
   // Router map for the SPA.
   return (
@@ -38,7 +62,7 @@ export default function App() {
           path="/dashboard"
           element={(
             <RequireAuth>
-              <DashboardPage />
+              <DashboardRoute />
             </RequireAuth>
           )}
         />
@@ -46,7 +70,9 @@ export default function App() {
           path="/risks"
           element={(
             <RequireAuth>
-              <RiskRegisterPage />
+              <RequireWorkspace allowed={[WORKSPACES.ERM]}>
+                <RiskRegisterPage />
+              </RequireWorkspace>
             </RequireAuth>
           )}
         />
@@ -54,7 +80,79 @@ export default function App() {
           path="/risks/:riskId"
           element={(
             <RequireAuth>
-              <RiskDetailPage />
+              <RequireWorkspace allowed={[WORKSPACES.ERM]}>
+                <RiskDetailPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/current"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <CurrentProjectsPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/projects/:projectId"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <ProjectDetailPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/future"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <FutureProjectsPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/submit"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <SubmitProjectPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/review"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <SubmissionReviewPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/review/:projectId"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <ProposalReviewPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/strategic-priorities"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <StrategicPrioritiesPage />
+              </RequireWorkspace>
             </RequireAuth>
           )}
         />

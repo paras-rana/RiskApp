@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AuthContext } from './authContextValue';
+import { WORKSPACES, isValidWorkspace } from '../lib/workspace';
 
 const API_BASE = 'http://localhost:3000';
 const AUTH_STORAGE_KEY = 'riskapp.auth';
@@ -16,13 +17,22 @@ function readStoredSession() {
   }
 }
 
+function normalizeSession(session) {
+  if (!session) return null;
+
+  return {
+    ...session,
+    workspace: isValidWorkspace(session.workspace) ? session.workspace : WORKSPACES.ERM,
+  };
+}
+
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(() => readStoredSession());
+  const [session, setSession] = useState(() => normalizeSession(readStoredSession()));
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     async function validateSession() {
-      const stored = readStoredSession();
+      const stored = normalizeSession(readStoredSession());
       if (!stored?.token) {
         setSession(null);
         setAuthReady(true);
@@ -41,10 +51,10 @@ export function AuthProvider({ children }) {
         }
 
         const data = await response.json();
-        const nextSession = {
+        const nextSession = normalizeSession({
           ...stored,
           user: data.user,
-        };
+        });
 
         window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
         setSession(nextSession);
@@ -59,7 +69,7 @@ export function AuthProvider({ children }) {
     void validateSession();
   }, []);
 
-  async function login(email, password) {
+  async function login(email, password, workspace = WORKSPACES.ERM) {
     const response = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: {
@@ -73,15 +83,31 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
-    const nextSession = {
+    const nextSession = normalizeSession({
       token: data.token,
       user: data.user,
       expiresAt: data.expiresAt,
-    };
+      workspace,
+    });
 
     window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
     setSession(nextSession);
     return nextSession;
+  }
+
+  function setWorkspace(workspace) {
+    if (!isValidWorkspace(workspace)) return;
+
+    setSession((currentSession) => {
+      if (!currentSession) return currentSession;
+
+      const nextSession = {
+        ...currentSession,
+        workspace,
+      };
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
+      return nextSession;
+    });
   }
 
   function logout() {
@@ -97,8 +123,10 @@ export function AuthProvider({ children }) {
         token: session?.token ?? '',
         user: session?.user ?? null,
         expiresAt: session?.expiresAt ?? null,
+        workspace: session?.workspace ?? WORKSPACES.ERM,
         login,
         logout,
+        setWorkspace,
       }}
     >
       {children}

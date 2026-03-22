@@ -129,6 +129,14 @@ const ICONS = {
       <path d="m6 9 6 6 6-6" />
     </>
   ),
+  portfolio: (
+    <>
+      <rect x="4" y="6" width="16" height="12" rx="2" />
+      <path d="M9 6V4h6v2" />
+      <path d="M4 11h16" />
+      <path d="M10 14h4" />
+    </>
+  ),
 };
 
 export default function Icon({ name, className = '', strokeWidth = 1.8 }) {
