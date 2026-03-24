@@ -262,8 +262,10 @@ function normalizeProject(project) {
     weeklyUpdates: Array.isArray(project.weeklyUpdates)
       ? project.weeklyUpdates.map((entry) => ({
           weekStart: entry.weekStart ?? '',
+          cadence: entry.cadence === 'monthly' ? 'monthly' : 'weekly',
           plan: entry.plan ?? '',
           progress: entry.progress ?? '',
+          overallStatus: entry.overallStatus ?? '',
         }))
       : [],
   };

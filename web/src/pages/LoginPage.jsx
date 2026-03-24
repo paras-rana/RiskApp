@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import Icon from '../components/Icon';
+import loginBackground from '../assets/login-background.svg';
 import { WORKSPACE_OPTIONS, WORKSPACES } from '../lib/workspace';
 
 function getErrorMessage(error) {
@@ -40,7 +41,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-shell">
+    <main
+      className="login-shell"
+      style={{
+        '--login-background-image': `url(${loginBackground})`,
+      }}
+    >
       <section className="login-hero">
         <div className="login-quote-overlay">
           <div className="login-quote-mark">&ldquo;</div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import pptxgen from 'pptxgenjs';
 import { useAuth } from '../auth/useAuth';
@@ -412,6 +413,13 @@ function formatWeekStartLabel(date) {
   }).format(date);
 }
 
+function formatMonthStartLabel(date) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
 function getWeekStartIso(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -439,6 +447,20 @@ function getReferenceWeekStarts(date = new Date()) {
   };
 }
 
+function getReferenceMonthStarts(date = new Date()) {
+  const currentMonthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+  const pastMonthStart = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  const upcomingMonthStart = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+  return {
+    pastWeekStart: getWeekStartIso(pastMonthStart),
+    pastWeekLabel: formatMonthStartLabel(pastMonthStart),
+    currentWeekStart: getWeekStartIso(currentMonthStart),
+    currentWeekLabel: formatMonthStartLabel(currentMonthStart),
+    upcomingWeekLabel: formatMonthStartLabel(upcomingMonthStart),
+  };
+}
+
 function downloadProjectDocument(fileName) {
   const blob = new Blob([`Placeholder download for ${fileName}`], { type: 'text/plain;charset=utf-8' });
   const objectUrl = window.URL.createObjectURL(blob);
@@ -456,17 +478,19 @@ export default function ProjectDetailPage() {
   const { token, logout } = useAuth();
   const { getProjectById, saveWeeklyUpdate, saveTeamMembers, saveDocumentVersion } = usePpmProjects();
   const project = getProjectById(projectId);
+  const isOperationalInitiative = project?.currentProjectClassification === 'Operations Initiative';
   const {
     pastWeekStart,
     pastWeekLabel,
     currentWeekStart,
     currentWeekLabel,
-  } = getReferenceWeekStarts();
+  } = isOperationalInitiative ? getReferenceMonthStarts() : getReferenceWeekStarts();
   const [activeTab, setActiveTab] = useState('key-info');
   const [activeOverlay, setActiveOverlay] = useState(null);
   const [progressForm, setProgressForm] = useState({
     progress: '',
     nextWeekPlan: '',
+    overallStatus: '',
   });
   const [teamFormText, setTeamFormText] = useState('');
   const [documentVersionForm, setDocumentVersionForm] = useState({
@@ -567,8 +591,38 @@ export default function ProjectDetailPage() {
     }),
     { budget: 0, actualToDate: 0, estimateAtCompletion: 0 },
   );
-  const pastWeekUpdate = project.weeklyUpdates?.find((entry) => entry.weekStart === pastWeekStart) ?? null;
-  const currentWeekUpdate = project.weeklyUpdates?.find((entry) => entry.weekStart === currentWeekStart) ?? null;
+  const updateCadence = isOperationalInitiative ? 'monthly' : 'weekly';
+  const updateTitle = isOperationalInitiative ? 'Monthly Update' : 'Weekly Update';
+  const progressButtonLabel = isOperationalInitiative ? 'Monthly Progress Update' : 'Progress Update';
+  const progressSummaryLabel = isOperationalInitiative
+    ? 'Monthly planning and execution snapshot'
+    : 'Weekly planning and execution snapshot';
+  const previousPlanHeading = isOperationalInitiative ? 'Previous Month Plan' : 'Previous Week Plan';
+  const pastPeriodProgressLabel = isOperationalInitiative
+    ? `Progress Against the Plan for ${pastWeekLabel}`
+    : `Progress Against the Plan for the Week of ${pastWeekLabel}`;
+  const currentPeriodPlanLabel = isOperationalInitiative
+    ? `Plan for ${currentWeekLabel}`
+    : `Plan for the Week of ${currentWeekLabel}`;
+  const emptyPastPlanText = isOperationalInitiative
+    ? 'No prior monthly plan is recorded yet.'
+    : 'No prior weekly plan is recorded yet.';
+  const emptyPastProgressText = isOperationalInitiative
+    ? 'Monthly progress has not been recorded yet.'
+    : 'Weekly progress has not been recorded yet.';
+  const currentProgressPlaceholder = isOperationalInitiative
+    ? 'To be filled in next month after execution progress is reviewed.'
+    : 'To be filled in next week after execution progress is reviewed.';
+  const currentReviewPlaceholder = isOperationalInitiative
+    ? 'To be filled in next month after the monthly review is completed.'
+    : 'To be filled in next week after the weekly review is completed.';
+  const periodLabel = isOperationalInitiative ? 'month' : 'week';
+  const pastWeekUpdate = project.weeklyUpdates?.find(
+    (entry) => entry.weekStart === pastWeekStart && (entry.cadence ?? 'weekly') === updateCadence,
+  ) ?? null;
+  const currentWeekUpdate = project.weeklyUpdates?.find(
+    (entry) => entry.weekStart === currentWeekStart && (entry.cadence ?? 'weekly') === updateCadence,
+  ) ?? null;
   const projectDocuments = (project.documentVersions ?? [])
     .filter((document) => document.isCurrent)
     .sort((left, right) => left.category.localeCompare(right.category));
@@ -584,9 +638,199 @@ export default function ProjectDetailPage() {
     setProgressForm({
       progress: pastWeekUpdate?.progress ?? '',
       nextWeekPlan: currentWeekUpdate?.plan ?? '',
+      overallStatus: pastWeekUpdate?.overallStatus ?? '',
     });
     setActiveOverlay('progress-update');
   }
+
+  const overlay =
+    typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className={`drawer-overlay ${activeOverlay ? 'open' : ''}`}
+            onClick={() => setActiveOverlay(null)}
+          >
+            <aside
+              className={`drawer-panel ${activeOverlay ? 'open' : ''}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="drawer-header">
+                <h2>{overlayHeading}</h2>
+                <button type="button" className="icon-btn" onClick={() => setActiveOverlay(null)}>
+                  x
+                </button>
+              </div>
+
+              {activeOverlay === 'progress-update' ? (
+                <form
+                  className="risk-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitProgressUpdate();
+                  }}
+                >
+                  <div className="detail-block">
+                    <h3><Icon name="assessment" />{previousPlanHeading}</h3>
+                    <p className="muted">
+                      {pastWeekUpdate?.plan || (project.milestones[0]?.name
+                        ? `Focus on ${project.milestones[0].name} and keep delivery aligned to ${project.milestones[0].quarter || 'the planned quarter'}.`
+                        : emptyPastPlanText)}
+                    </p>
+                  </div>
+
+                  <div className="form-grid single-column">
+                    {isOperationalInitiative ? (
+                      <label>
+                        Brief Explanation of the Overall Status of the Project
+                        <textarea
+                          rows={4}
+                          value={progressForm.overallStatus}
+                          onChange={(event) => setProgressForm((current) => ({
+                            ...current,
+                            overallStatus: event.target.value,
+                          }))}
+                          placeholder="Summarize the overall project status for this month."
+                          required
+                        />
+                      </label>
+                    ) : null}
+
+                    <label>
+                      {pastPeriodProgressLabel}
+                      <textarea
+                        rows={5}
+                        value={progressForm.progress}
+                        onChange={(event) => setProgressForm((current) => ({
+                          ...current,
+                          progress: event.target.value,
+                        }))}
+                      />
+                    </label>
+
+                    <label>
+                      {currentPeriodPlanLabel}
+                      <textarea
+                        rows={5}
+                        value={progressForm.nextWeekPlan}
+                        onChange={(event) => setProgressForm((current) => ({
+                          ...current,
+                          nextWeekPlan: event.target.value,
+                        }))}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Save Update
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              {activeOverlay === 'team-edit' ? (
+                <form
+                  className="risk-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitTeamMembers();
+                  }}
+                >
+                  <p className="muted">
+                    Add or remove team members. Enter one name per line.
+                  </p>
+
+                  <div className="form-grid single-column">
+                    <label>
+                      Team Members
+                      <textarea
+                        rows={10}
+                        value={teamFormText}
+                        onChange={(event) => setTeamFormText(event.target.value)}
+                        placeholder="Enter one team member per line"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Save Team
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              {activeOverlay === 'document-version' ? (
+                <form
+                  className="risk-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitDocumentVersion();
+                  }}
+                >
+                  <div className="form-grid single-column">
+                    <label>
+                      Document Type
+                      <select
+                        value={documentVersionForm.category}
+                        onChange={(event) => setDocumentVersionForm((current) => ({
+                          ...current,
+                          category: event.target.value,
+                        }))}
+                      >
+                        <option value="Cost Estimate Breakdown">Cost Estimate Breakdown</option>
+                        <option value="Scope Statement">Scope Statement</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      File Name
+                      <input
+                        value={documentVersionForm.fileName}
+                        onChange={(event) => setDocumentVersionForm((current) => ({
+                          ...current,
+                          fileName: event.target.value,
+                        }))}
+                        placeholder="Enter the new file name"
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Comments
+                      <textarea
+                        rows={4}
+                        value={documentVersionForm.comments}
+                        onChange={(event) => setDocumentVersionForm((current) => ({
+                          ...current,
+                          comments: event.target.value,
+                        }))}
+                        placeholder="Describe what changed in this version"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Save Version
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+            </aside>
+          </div>,
+          document.body,
+        )
+      : null;
 
   function openTeamEditor() {
     setTeamFormText(project.teamMembers.join('\n'));
@@ -614,17 +858,21 @@ export default function ProjectDetailPage() {
   function submitProgressUpdate() {
     saveWeeklyUpdate(project.id, {
       weekStart: pastWeekStart,
+      cadence: updateCadence,
       plan: pastWeekUpdate?.plan
         ?? (project.milestones[0]?.name
           ? `Focus on ${project.milestones[0].name} and keep delivery aligned to ${project.milestones[0].quarter || 'the planned quarter'}.`
           : ''),
       progress: progressForm.progress.trim(),
+      overallStatus: isOperationalInitiative ? progressForm.overallStatus.trim() : '',
     });
 
     saveWeeklyUpdate(project.id, {
       weekStart: currentWeekStart,
+      cadence: updateCadence,
       plan: progressForm.nextWeekPlan.trim(),
       progress: currentWeekUpdate?.progress ?? '',
+      overallStatus: currentWeekUpdate?.overallStatus ?? '',
     });
 
     setActiveOverlay(null);
@@ -679,9 +927,12 @@ export default function ProjectDetailPage() {
       || (project.milestones[1]?.name
         ? `Continue with ${project.milestones[1].name} and prepare delivery against ${project.milestones[1].quarter || 'the current plan'}.`
         : project.milestones[0]?.name
-          ? `Continue execution on ${project.milestones[0].name} for the current week.`
-          : 'Current-week plan has not been defined yet.');
-    const lastWeekProgress = pastWeekUpdate?.progress || 'Weekly progress has not been recorded yet.';
+          ? `Continue execution on ${project.milestones[0].name} for the current ${periodLabel}.`
+          : `Current-${periodLabel} plan has not been defined yet.`);
+    const lastWeekProgress = pastWeekUpdate?.progress || emptyPastProgressText;
+    const overallStatusSummary = isOperationalInitiative
+      ? (pastWeekUpdate?.overallStatus || 'Overall project status has not been recorded yet.')
+      : '';
 
     slide.addShape(pptx.ShapeType.rect, {
       x: 0.2,
@@ -729,8 +980,9 @@ export default function ProjectDetailPage() {
         x: 6.7,
         y: 4.0,
         lines: [
-          `Progress Last Week: ${lastWeekProgress}`,
-          `Plan For Next Week: ${nextWeekPlan}`,
+          `Progress Last ${isOperationalInitiative ? 'Month' : 'Week'}: ${lastWeekProgress}`,
+          `Plan For Next ${isOperationalInitiative ? 'Month' : 'Week'}: ${nextWeekPlan}`,
+          ...(overallStatusSummary ? [`Overall Status: ${overallStatusSummary}`] : []),
         ],
       },
     ];
@@ -1019,11 +1271,11 @@ export default function ProjectDetailPage() {
 
       <section className="panel">
         <div className="panel-header-row">
-          <h2><Icon name="review" />Weekly Update</h2>
+          <h2><Icon name="review" />{updateTitle}</h2>
           <div className="detail-actions-row">
-            <div className="muted">Weekly planning and execution snapshot</div>
+            <div className="muted">{progressSummaryLabel}</div>
             <button type="button" className="secondary-btn" onClick={openProgressUpdate}>
-              Progress Update
+              {progressButtonLabel}
             </button>
           </div>
         </div>
@@ -1032,10 +1284,10 @@ export default function ProjectDetailPage() {
           <table className="simple-table weekly-update-table">
             <thead>
               <tr>
-                <th>Week Of</th>
+                <th>{isOperationalInitiative ? 'Month Of' : 'Week Of'}</th>
                 <th>Plan</th>
                 <th>Progress</th>
-                <th>Review Notes</th>
+                <th>{isOperationalInitiative ? 'Overall Status' : 'Review Notes'}</th>
               </tr>
             </thead>
             <tbody>
@@ -1044,12 +1296,16 @@ export default function ProjectDetailPage() {
                 <td>
                   {pastWeekUpdate?.plan || (project.milestones[0]?.name
                     ? `Focus on ${project.milestones[0].name} and keep delivery aligned to ${project.milestones[0].quarter || 'the planned quarter'}.`
-                    : 'Weekly plan has not been defined yet.')}
+                    : `${isOperationalInitiative ? 'Monthly' : 'Weekly'} plan has not been defined yet.`)}
                 </td>
                 <td>
-                  {pastWeekUpdate?.progress || 'Weekly progress has not been recorded yet.'}
+                  {pastWeekUpdate?.progress || emptyPastProgressText}
                 </td>
-                <td>{project.reviewNotes || 'No review notes recorded.'}</td>
+                <td>
+                  {isOperationalInitiative
+                    ? (pastWeekUpdate?.overallStatus || 'Overall project status has not been recorded yet.')
+                    : (project.reviewNotes || 'No review notes recorded.')}
+                </td>
               </tr>
               <tr>
                 <td className="weekly-update-week-cell">{currentWeekLabel}</td>
@@ -1057,11 +1313,11 @@ export default function ProjectDetailPage() {
                   {currentWeekUpdate?.plan || (project.milestones[1]?.name
                     ? `Continue with ${project.milestones[1].name} and prepare delivery against ${project.milestones[1].quarter || 'the current plan'}.`
                     : project.milestones[0]?.name
-                      ? `Continue execution on ${project.milestones[0].name} for the current week.`
-                      : 'Current-week plan has not been defined yet.')}
+                      ? `Continue execution on ${project.milestones[0].name} for the current ${periodLabel}.`
+                      : `Current-${periodLabel} plan has not been defined yet.`)}
                 </td>
-                <td className="muted">To be filled in next week after execution progress is reviewed.</td>
-                <td className="muted">To be filled in next week after the weekly review is completed.</td>
+                <td className="muted">{currentProgressPlaceholder}</td>
+                <td className="muted">{currentReviewPlaceholder}</td>
               </tr>
             </tbody>
           </table>
@@ -1208,172 +1464,7 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      <div
-        className={`drawer-overlay ${activeOverlay ? 'open' : ''}`}
-        onClick={() => setActiveOverlay(null)}
-      >
-        <aside
-          className={`drawer-panel ${activeOverlay ? 'open' : ''}`}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="drawer-header">
-            <h2>{overlayHeading}</h2>
-            <button type="button" className="icon-btn" onClick={() => setActiveOverlay(null)}>
-              x
-            </button>
-          </div>
-
-          {activeOverlay === 'progress-update' ? (
-            <form
-              className="risk-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitProgressUpdate();
-              }}
-            >
-              <div className="detail-block">
-                <h3><Icon name="assessment" />Previous Week Plan</h3>
-                <p className="muted">
-                  {pastWeekUpdate?.plan || (project.milestones[0]?.name
-                    ? `Focus on ${project.milestones[0].name} and keep delivery aligned to ${project.milestones[0].quarter || 'the planned quarter'}.`
-                    : 'No prior weekly plan is recorded yet.')}
-                </p>
-              </div>
-
-              <div className="form-grid single-column">
-                <label>
-                  Progress Against the Plan for the Week of {pastWeekLabel}
-                  <textarea
-                    rows={5}
-                    value={progressForm.progress}
-                    onChange={(event) => setProgressForm((current) => ({
-                      ...current,
-                      progress: event.target.value,
-                    }))}
-                  />
-                </label>
-
-                <label>
-                  Plan for the Week of {currentWeekLabel}
-                  <textarea
-                    rows={5}
-                    value={progressForm.nextWeekPlan}
-                    onChange={(event) => setProgressForm((current) => ({
-                      ...current,
-                      nextWeekPlan: event.target.value,
-                    }))}
-                  />
-                </label>
-              </div>
-
-              <div className="drawer-actions">
-                <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn">
-                  Save Update
-                </button>
-              </div>
-            </form>
-          ) : null}
-
-          {activeOverlay === 'team-edit' ? (
-            <form
-              className="risk-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitTeamMembers();
-              }}
-            >
-              <p className="muted">
-                Add or remove team members. Enter one name per line.
-              </p>
-
-              <div className="form-grid single-column">
-                <label>
-                  Team Members
-                  <textarea
-                    rows={10}
-                    value={teamFormText}
-                    onChange={(event) => setTeamFormText(event.target.value)}
-                    placeholder="Enter one team member per line"
-                  />
-                </label>
-              </div>
-
-              <div className="drawer-actions">
-                <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn">
-                  Save Team
-                </button>
-              </div>
-            </form>
-          ) : null}
-
-          {activeOverlay === 'document-version' ? (
-            <form
-              className="risk-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitDocumentVersion();
-              }}
-            >
-              <div className="form-grid single-column">
-                <label>
-                  Document Type
-                  <select
-                    value={documentVersionForm.category}
-                    onChange={(event) => setDocumentVersionForm((current) => ({
-                      ...current,
-                      category: event.target.value,
-                    }))}
-                  >
-                    <option value="Cost Estimate Breakdown">Cost Estimate Breakdown</option>
-                    <option value="Scope Statement">Scope Statement</option>
-                  </select>
-                </label>
-
-                <label>
-                  File Name
-                  <input
-                    value={documentVersionForm.fileName}
-                    onChange={(event) => setDocumentVersionForm((current) => ({
-                      ...current,
-                      fileName: event.target.value,
-                    }))}
-                    placeholder="Enter the new file name"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Comments
-                  <textarea
-                    rows={4}
-                    value={documentVersionForm.comments}
-                    onChange={(event) => setDocumentVersionForm((current) => ({
-                      ...current,
-                      comments: event.target.value,
-                    }))}
-                    placeholder="Describe what changed in this version"
-                  />
-                </label>
-              </div>
-
-              <div className="drawer-actions">
-                <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn">
-                  Save Version
-                </button>
-              </div>
-            </form>
-          ) : null}
-        </aside>
-      </div>
+      {overlay}
     </AppFrame>
   );
 }

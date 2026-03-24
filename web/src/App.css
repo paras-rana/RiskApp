@@ -160,7 +160,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 8px;
+  height: 4px;
 }
 
 .side-nav-link:hover,
@@ -292,7 +292,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 10px;
+  height: 5px;
   background: var(--section-band);
 }
 
@@ -424,7 +424,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 8px;
+  height: 4px;
   background: var(--section-band);
 }
 
@@ -467,7 +467,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 8px;
+  height: 4px;
   background: var(--band-purple);
 }
 
@@ -475,7 +475,7 @@ body {
   content: '';
   position: absolute;
   inset: auto 0 0;
-  height: 8px;
+  height: 4px;
   background: var(--band-purple);
 }
 
@@ -1018,7 +1018,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 6px;
+  height: 3px;
   background: var(--section-band);
 }
 
@@ -1386,9 +1386,8 @@ body {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(9, 17, 40, 0.28) 0%, rgba(9, 17, 40, 0.62) 100%),
-    url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Hospitals%20corridor.jpg')
-      center/cover no-repeat;
+    linear-gradient(180deg, rgba(10, 8, 28, 0.18) 0%, rgba(10, 8, 28, 0.38) 100%),
+    var(--login-background-image) center/cover no-repeat;
 }
 
 .login-shell::before {
@@ -1396,8 +1395,8 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.12), transparent 26%),
-    linear-gradient(90deg, rgba(8, 14, 32, 0.54) 0%, rgba(8, 14, 32, 0.22) 42%, rgba(8, 14, 32, 0.4) 100%);
+    radial-gradient(circle at 73% 28%, rgba(255, 235, 141, 0.16), transparent 24%),
+    linear-gradient(90deg, rgba(9, 10, 36, 0.54) 0%, rgba(9, 10, 36, 0.18) 43%, rgba(9, 10, 36, 0.32) 100%);
   pointer-events: none;
 }
 
@@ -1912,7 +1911,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 8px;
+  height: 4px;
   background: var(--band-purple);
 }
 
