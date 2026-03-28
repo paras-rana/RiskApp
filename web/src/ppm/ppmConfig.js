@@ -1,7 +1,7 @@
 export const EXECUTIVE_SPONSOR_OPTIONS = [
-  'Sarah Chen',
-  'Michael Torres',
-  'Danielle Brooks',
+  'CEO',
+  'CFO',
+  'COO',
 ];
 
 export const TARGET_START_QUARTER_OPTIONS = [

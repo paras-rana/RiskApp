@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import {
   CURRENT_PROJECT_CLASSIFICATION_OPTIONS,
+  EXECUTIVE_SPONSOR_OPTIONS,
   PROJECT_CATEGORY_OPTIONS,
   SEEDED_STRATEGIC_PRIORITY_PERIODS,
 } from './ppmConfig';
@@ -19,11 +20,17 @@ const DOCUMENT_CATEGORY_CONFIG = [
   },
 ];
 
+const LEGACY_EXECUTIVE_SPONSOR_MAP = {
+  'Sarah Chen': 'CEO',
+  'Michael Torres': 'CFO',
+  'Danielle Brooks': 'COO',
+};
+
 const SEEDED_PROJECTS = [
   {
     id: 'PRJ-201',
     name: 'Digital Front Door Refresh',
-    executiveSponsor: 'Sarah Chen',
+    executiveSponsor: 'CEO',
     businessOwner: 'Alicia Gomez',
     estimatedCost: '$4.8M',
     targetStartQuarter: 'Q2 2026',
@@ -54,7 +61,7 @@ const SEEDED_PROJECTS = [
   {
     id: 'PRJ-214',
     name: 'Clinical Workforce Optimization',
-    executiveSponsor: 'Michael Torres',
+    executiveSponsor: 'CFO',
     businessOwner: 'M. Patel',
     estimatedCost: '$3.2M',
     targetStartQuarter: 'Q3 2026',
@@ -84,7 +91,7 @@ const SEEDED_PROJECTS = [
   {
     id: 'PRJ-223',
     name: 'Revenue Cycle AI Triage',
-    executiveSponsor: 'Danielle Brooks',
+    executiveSponsor: 'COO',
     businessOwner: 'Jordan Lee',
     estimatedCost: '$2.1M',
     targetStartQuarter: 'Q4 2026',
@@ -115,7 +122,7 @@ const SEEDED_PROJECTS = [
   {
     id: 'PRJ-230',
     name: 'Supply Chain Visibility Hub',
-    executiveSponsor: 'Michael Torres',
+    executiveSponsor: 'CFO',
     businessOwner: 'Rina Shah',
     estimatedCost: '$1.6M',
     targetStartQuarter: 'Q1 2027',
@@ -145,7 +152,7 @@ const SEEDED_PROJECTS = [
   {
     id: 'PRJ-233',
     name: 'Cyber Resilience Uplift',
-    executiveSponsor: 'Sarah Chen',
+    executiveSponsor: 'CEO',
     businessOwner: 'Chris Nolan',
     estimatedCost: '$5.4M',
     targetStartQuarter: 'Q4 2026',
@@ -183,6 +190,11 @@ function normalizeProject(project) {
     CURRENT_PROJECT_CLASSIFICATION_OPTIONS.includes(project.currentProjectClassification)
       ? project.currentProjectClassification
       : '';
+  const executiveSponsor = LEGACY_EXECUTIVE_SPONSOR_MAP[project.executiveSponsor]
+    ?? LEGACY_EXECUTIVE_SPONSOR_MAP[project.sponsor]
+    ?? (EXECUTIVE_SPONSOR_OPTIONS.includes(project.executiveSponsor)
+      ? project.executiveSponsor
+      : EXECUTIVE_SPONSOR_OPTIONS[0]);
 
   const documentVersions = Array.isArray(project.documentVersions)
     ? project.documentVersions.map((document, index) => ({
@@ -209,7 +221,7 @@ function normalizeProject(project) {
   return {
     ...project,
     proposalId: project.proposalId ?? project.id ?? '',
-    executiveSponsor: project.executiveSponsor ?? project.sponsor ?? '',
+    executiveSponsor,
     businessOwner: project.businessOwner ?? project.owner ?? '',
     estimatedCost: project.estimatedCost ?? project.budget ?? '',
     targetStartQuarter: project.targetStartQuarter ?? project.targetQuarter ?? '',

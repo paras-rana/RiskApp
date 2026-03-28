@@ -48,6 +48,7 @@ At the portfolio level, the Dashboard aggregates all risks into matrix views and
 - Review submitted proposals from a dedicated queue with proposal detail pages and decision actions.
 - Route proposals to current projects, future projects, archive, or keep them in the queue as WIP.
 - Track approved work as either `Major project` or `Operations Initiative`.
+- Use role-based executive sponsor selections in PPM (`CEO`, `CFO`, `COO`), with legacy seeded sponsor names normalized automatically.
 - Export project detail slides with status, milestones, risks, and a milestone timeline visual.
 
 ## Tech Stack
