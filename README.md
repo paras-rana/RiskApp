@@ -1,134 +1,211 @@
 # RiskApp
 
-RiskApp is a full-stack application with two workspaces:
-- Enterprise Risk Management (ERM) for creating, scoring, tracking, and reassessing organizational risks
-- Portfolio and Project Management (PPM) for submitting, reviewing, prioritizing, and tracking project proposals and active work
+RiskApp is a full-stack web application with two business workspaces:
 
-It includes:
-- A React dashboard and risk register UI
-- A portfolio management workspace with proposal intake, review, future pipeline, and current project views
-- A NestJS API for risk, mitigation, and assessment workflows
-- Token-based login with a seeded admin account for local development
-- PostgreSQL storage (Docker-ready)
+- `ERM` (Enterprise Risk Management) for recording, scoring, monitoring, and reassessing organizational risks
+- `PPM` (Portfolio and Project Management) for intake, review, prioritization, and tracking of projects and strategic initiatives
 
-## Application Flow (Narrative)
+The repository combines a React single-page application, a NestJS API, and a PostgreSQL-backed ERM data layer for local development.
 
-A typical workflow starts in the Risk Register, where a user captures a new risk with context such as category, ownership, status, and site/program. At this stage, the user records the inherent assessment (severity and probability) to represent the untreated level of exposure. Once saved, the system generates a risk ID, stores the record, and logs the assessment history.
+## Table of Contents
 
-From there, the user opens the Risk Detail page to manage the risk over time. Mitigations are added as concrete actions, each with status, owner, timing, and expected effect on severity and/or probability. As understanding improves or controls are implemented, the user records reassessments, especially residual assessments, to reflect the current post-mitigation position.
+- [Overview](#overview)
+- [Core Functions](#core-functions)
+- [How the Application Works](#how-the-application-works)
+- [Screens and Routes](#screens-and-routes)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Repository Structure](#repository-structure)
+- [Backend Capabilities](#backend-capabilities)
+- [Data and Persistence Model](#data-and-persistence-model)
+- [Local Development Setup](#local-development-setup)
+- [Environment Variables](#environment-variables)
+- [Available Scripts](#available-scripts)
+- [Authentication](#authentication)
+- [API Summary](#api-summary)
+- [Current Constraints and Notes](#current-constraints-and-notes)
+- [Testing](#testing)
+- [Future Improvements](#future-improvements)
+- [License](#license)
 
-At the portfolio level, the Dashboard aggregates all risks into matrix views and summaries by category and department. Users can click matrix cells and summary rows to filter and investigate specific pockets of exposure. This creates a continuous loop: capture risk, assess baseline, execute mitigations, reassess residual exposure, and monitor trends across the organization.
+## Overview
 
-## Functional Overview
+RiskApp is designed to support two related operational workflows in one interface.
 
-### 1. Risk Register
-- Create risks with structured fields (title, category, department, owner, status, site/program, review due date).
-- Capture inherent severity/probability at creation (1-5 scale each).
-- Optionally capture initial residual severity/probability and notes.
-- View a searchable, filterable, paginated risk table.
+The `ERM` workspace is used to manage enterprise risks from initial identification through mitigation and reassessment. Users can create risks, assign owners, maintain mitigation plans, capture inherent and residual assessments, and review aggregated exposure through matrix-style dashboards.
 
-### 2. Dashboard Analytics
-- View risks on a 5x5 risk matrix by **inherent** or **residual** basis.
-- Click matrix cells to multi-select and filter the risk list.
-- Filter further by category and department summaries.
-- See risk-band groupings:
-  - Low: score <= 6
-  - Medium: score 7-14
-  - High: score >= 15
+The `PPM` workspace is used to manage the front end of portfolio governance. Users can submit project proposals, review them, move work into future or active states, maintain strategic priority periods, track current projects, and view project detail records with supporting artifacts and status updates.
 
-### 3. Risk Detail Workflow
-- View detailed risk profile and scoring cards.
-- Add/edit mitigations with status, owner, dates, cost, control type, confidence, and notes.
-- Mark mitigation directional impact flags (reduces severity and/or probability).
-- Add/edit assessments (INHERENT or RESIDUAL) with scorer and rationale.
-- Residual assessments update residual risk values and reassessment timestamp.
+## Core Functions
 
-### 4. Portfolio Intake and Review
-- Submit new project proposals in structured sections for summary, resources, schedule, assumptions, risks, and attachments.
-- Review submitted proposals from a dedicated queue with proposal detail pages and decision actions.
-- Route proposals to current projects, future projects, archive, or keep them in the queue as WIP.
-- Track approved work as either `Major project` or `Operations Initiative`.
-- Use role-based executive sponsor selections in PPM (`CEO`, `CFO`, `COO`), with legacy seeded sponsor names normalized automatically.
-- Export project detail slides with status, milestones, risks, and a milestone timeline visual.
+### ERM
 
-## Tech Stack
+- Create and maintain risk records with structured metadata
+- Capture inherent and residual risk assessments
+- Record mitigation actions and track their status over time
+- Review risk details, assessment history, and mitigation progress
+- Analyze risk exposure through dashboard summaries and matrix views
 
-- Frontend: React 19, React Router, Vite
-- API: NestJS 11
+### PPM
+
+- Submit new project or initiative proposals
+- Review proposals and approve, deny, hold, or keep work in progress
+- Organize work into submitted, future, current, and archived states
+- Track strategic priority periods and related priorities
+- Maintain project details such as milestones, team members, documents, and weekly updates
+- Export project detail content into PowerPoint-ready output
+
+## How the Application Works
+
+### ERM Workflow
+
+1. A user creates a risk in the register with ownership, category, status, and review metadata.
+2. The user captures the initial inherent severity and probability.
+3. The risk detail view is used to manage mitigations and assessment history.
+4. Residual assessments are added as controls mature or conditions change.
+5. Dashboards aggregate risks into matrix and summary views for analysis.
+
+### PPM Workflow
+
+1. A user submits a project proposal with summary, schedule, staffing, assumptions, risks, and documents.
+2. Reviewers evaluate the proposal and move it to current work, future work, archive, or work-in-progress.
+3. Approved projects are tracked with milestones, document versions, weekly updates, and team assignments.
+4. Strategic priorities can be managed separately and associated to projects.
+
+## Screens and Routes
+
+### Shared
+
+- `/login` - sign-in page
+- `/dashboard` - workspace-sensitive landing page after login
+
+### ERM
+
+- `/risks` - risk register
+- `/risks/:riskId` - risk detail page
+
+### PPM
+
+- `/ppm/submit` - proposal submission form
+- `/ppm/review` - proposal review queue
+- `/ppm/review/:projectId` - review detail page
+- `/ppm/future` - future pipeline and archived views
+- `/ppm/current` - active project tracking
+- `/ppm/projects/:projectId` - project detail view
+- `/ppm/strategic-priorities` - strategic priority period management
+
+## Architecture
+
+RiskApp is split into three main layers:
+
+- `web/` contains the React frontend and all route-level UI for ERM and PPM
+- `api/` contains the NestJS backend, authentication, and ERM APIs
+- `infra/` contains local infrastructure configuration for PostgreSQL
+
+### Frontend
+
+The frontend is a React SPA using React Router. It enforces authentication and routes users into either ERM or PPM views based on the active workspace.
+
+ERM pages call the backend API through a small fetch wrapper in `web/src/lib/api.js`.
+
+PPM is currently implemented as a frontend-managed module. Its project and strategic-priority data are seeded in the browser and persisted in `localStorage` through `PpmProjectsContext`. That means PPM does not currently depend on the NestJS API or PostgreSQL for its main data flow.
+
+### Backend
+
+The backend is a NestJS application with a focused module structure:
+
+- `AuthModule` handles login, token validation, and current-user resolution
+- `PrismaModule` manages database access
+- `RisksModule` exposes ERM risk, mitigation, and assessment endpoints
+
+The backend currently serves ERM functionality. There is no dedicated PPM API module in the current codebase.
+
+## Technology Stack
+
+- Frontend: React 19, React Router 7, Vite
+- Backend: NestJS 11
 - Database: PostgreSQL 16
-- Data Access: Prisma Client + PostgreSQL adapter (`@prisma/adapter-pg`) with SQL queries
+- Data access: Prisma Client with `@prisma/adapter-pg`
+- Auth: bearer-token based application auth
 - Infra: Docker Compose for local Postgres
+- Document export: `pptxgenjs`
 
 ## Repository Structure
 
 ```text
 risk-app/
-  api/      # NestJS backend
-  web/      # React frontend
-  infra/    # Docker Compose (Postgres)
+  api/
+    src/
+      auth/
+      prisma/
+      risks/
+  web/
+    src/
+      auth/
+      components/
+      lib/
+      pages/
+      ppm/
+  infra/
+  README.md
 ```
 
-## Data Model (Core Entities)
+### High-Level Layout
+
+- `api/src/auth/` contains login and auth guard logic
+- `api/src/prisma/` contains database bootstrap and client wiring
+- `api/src/risks/` contains ERM API controllers, service logic, and tests
+- `web/src/pages/` contains route-level pages for ERM and PPM
+- `web/src/auth/` contains frontend auth context and session handling
+- `web/src/ppm/` contains PPM configuration and state management
+- `web/src/components/` contains shared UI components such as matrix visualizations
+- `infra/` contains Docker-based local database setup
+
+## Backend Capabilities
+
+The backend currently supports:
+
+- Application startup with environment-based config
+- CORS for local frontend development on `http://localhost:5173`
+- Login and authenticated user lookup
+- Risk listing and retrieval
+- Risk creation
+- Mitigation creation, retrieval, and update
+- Assessment creation, retrieval, and update
+- Combined risk detail retrieval
+
+## Data and Persistence Model
+
+### ERM Persistence
+
+ERM data is stored in PostgreSQL and accessed through the NestJS backend. The codebase references the `erm` schema and works with core entities such as:
 
 - `risks`
-  - Main risk record with inherent and residual scoring fields
-  - ID format: `R-001`, `R-002`, ... (generated in service layer)
 - `mitigations`
-  - Risk treatment actions linked to a risk
-  - ID format: `M-0001`, `M-0002`, ...
 - `risk_assessments`
-  - Historical assessment entries (INHERENT / RESIDUAL)
-  - Stores scorer, timestamp, and notes
 - `risk_grid`
-  - Grid metadata table (severity/probability cell mapping)
+- `app_users`
 
-Note: API queries target the `erm` schema (for example `erm.risks`, `erm.mitigations`).
+Risk and mitigation identifiers are generated in the service layer.
 
-## API Endpoints
+### PPM Persistence
 
-Base URL: `http://localhost:3000`
+PPM data is currently persisted in the browser using `localStorage`.
 
-Authentication:
-- `POST /auth/login`
-  - Public endpoint that returns a bearer token and current user details
-- `GET /auth/me`
-  - Returns the authenticated user for the supplied bearer token
-- All `/risks` endpoints now require `Authorization: Bearer <token>`
+Primary client-side stores:
 
-- `GET /risks`
-  - List up to 500 risks for register/dashboard views
-- `POST /risks`
-  - Create a risk
-- `GET /risks/:id`
-  - Get one risk
-- `GET /risks/:id/detail`
-  - Get risk + mitigations + assessments in one payload
-- `GET /risks/:id/mitigations`
-  - List mitigations for a risk
-- `POST /risks/:id/mitigations`
-  - Create mitigation
-- `PUT /risks/:id/mitigations/:mitigationId`
-  - Update mitigation
-- `GET /risks/:id/assessments`
-  - List assessments for a risk
-- `POST /risks/:id/assessments`
-  - Create assessment
-- `PUT /risks/:id/assessments/:assessmentId`
-  - Update assessment
+- `riskapp.ppm.projects`
+- `riskapp.ppm.priorities`
 
-### Validation Rules (Backend)
-
-- Severity and probability are integers from 1 to 5.
-- Risk statuses: `Open`, `Monitoring`, `Mitigating`, `Accepted`, `Closed`.
-- Mitigation statuses: `Planned`, `In Progress`, `Implemented`, `On Hold`, `Cancelled`.
-- Assessment types: `INHERENT`, `RESIDUAL`.
+Seeded PPM data is normalized on load, including legacy executive sponsor names that are mapped to role-based labels such as `CEO`, `CFO`, and `COO`.
 
 ## Local Development Setup
 
 ### Prerequisites
+
 - Node.js 20+
 - npm
-- Docker Desktop (for Postgres)
+- Docker Desktop
 
 ### 1. Start PostgreSQL
 
@@ -137,14 +214,15 @@ cd infra
 docker compose up -d
 ```
 
-Postgres defaults from `infra/docker-compose.yml`:
+Default local database values:
+
 - Host: `localhost`
 - Port: `5432`
-- DB: `riskapp`
+- Database: `riskapp`
 - User: `postgres`
 - Password: `postgres123`
 
-### 2. Configure API environment
+### 2. Configure the API
 
 Create `api/.env` with:
 
@@ -156,9 +234,9 @@ ADMIN_PASSWORD="Admin123!"
 ADMIN_NAME="Risk Administrator"
 ```
 
-On startup, the API creates `erm.app_users` if it does not exist and seeds the admin user above when missing.
+On startup, the application seeds the local admin user if it does not already exist.
 
-### 3. Install dependencies
+### 3. Install Dependencies
 
 ```bash
 cd api
@@ -168,60 +246,119 @@ cd ../web
 npm install
 ```
 
-### 4. Run backend
+### 4. Run the API
 
 ```bash
 cd api
 npm run start:dev
 ```
 
-API runs at `http://localhost:3000` and enables CORS for `http://localhost:5173`.
+The backend runs on `http://localhost:3000`.
 
-### 5. Run frontend
+### 5. Run the Frontend
 
 ```bash
 cd web
 npm run dev
 ```
 
-UI runs at `http://localhost:5173`.
+The frontend runs on `http://localhost:5173`.
 
-### 6. Sign in
+### 6. Sign In
 
-Use the seeded local admin account:
+Use the seeded local account:
 
 - Email: `admin@riskapp.local`
 - Password: `Admin123!`
 
-## UI Routes
+## Environment Variables
 
-- `/login` - login page for the local admin user
-- `/dashboard` - matrix analytics and filtered summaries
-- `/risks` - risk register with create drawer and filters
-- `/risks/:riskId` - risk detail with mitigation and assessment management
-- `/ppm/submit` - submit a new project proposal
-- `/ppm/review` - proposal review queue
-- `/ppm/review/:projectId` - detailed proposal review page
-- `/ppm/future` - future pipeline and archived proposals
-- `/ppm/current` - current projects grouped by classification
-- `/ppm/projects/:projectId` - project detail and PowerPoint export
-- `/ppm/strategic-priorities` - strategic priority period management
+The current backend expects these environment variables:
 
-## Notes
+- `DATABASE_URL`
+- `AUTH_TOKEN_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `ADMIN_NAME`
 
-- The frontend uses a fixed API base URL: `http://localhost:3000`.
-- The backend currently uses SQL against existing `erm` schema tables.
-- Ensure database schema/tables exist before running full workflows.
+The frontend currently uses a fixed API base URL of `http://localhost:3000`.
 
-## Scripts
+## Available Scripts
 
-### API (`api/package.json`)
-- `npm run start:dev` - run NestJS in watch mode
-- `npm run build` - build backend
-- `npm run test` - unit tests
-- `npm run test:e2e` - e2e tests
+### API
 
-### Web (`web/package.json`)
-- `npm run dev` - Vite dev server
-- `npm run build` - production build
-- `npm run preview` - preview build
+- `npm run build` - build the NestJS application
+- `npm run start` - run the API
+- `npm run start:dev` - run the API in watch mode
+- `npm run start:debug` - run the API in debug watch mode
+- `npm run start:prod` - run the compiled server
+- `npm run lint` - lint backend files
+- `npm run test` - run unit tests
+- `npm run test:watch` - run tests in watch mode
+- `npm run test:cov` - run tests with coverage
+- `npm run test:e2e` - run end-to-end tests
+
+### Web
+
+- `npm run dev` - start the Vite development server
+- `npm run build` - build the frontend
+- `npm run lint` - lint frontend files
+- `npm run preview` - preview the production build
+
+## Authentication
+
+Authentication is token-based.
+
+- `POST /auth/login` returns a bearer token and user payload
+- `GET /auth/me` returns the current authenticated user
+- Protected ERM endpoints require `Authorization: Bearer <token>`
+
+The frontend stores auth context and uses route guards to redirect unauthenticated users to `/login`.
+
+## API Summary
+
+Base URL: `http://localhost:3000`
+
+### Auth
+
+- `POST /auth/login`
+- `GET /auth/me`
+
+### Risks
+
+- `GET /risks`
+- `POST /risks`
+- `GET /risks/:id`
+- `GET /risks/:id/detail`
+- `GET /risks/:id/mitigations`
+- `POST /risks/:id/mitigations`
+- `PUT /risks/:id/mitigations/:mitigationId`
+- `GET /risks/:id/assessments`
+- `POST /risks/:id/assessments`
+- `PUT /risks/:id/assessments/:assessmentId`
+
+## Current Constraints and Notes
+
+- ERM is the only workspace currently backed by the NestJS API and PostgreSQL.
+- PPM currently uses seeded browser data and `localStorage`, so it is suitable for UI workflow development but not yet a shared multi-user persistence model.
+- The frontend API base URL is hardcoded for local development.
+- Backend CORS is configured for `http://localhost:5173`.
+- The README describes the current repository state, not a target future architecture.
+
+## Testing
+
+Backend test files exist under `api/src` and the backend includes Jest-based unit and e2e test scripts.
+
+Frontend lint and build scripts are available through Vite and ESLint. Frontend automated test infrastructure is not currently defined in `web/package.json`.
+
+## Future Improvements
+
+- Add a backend persistence layer and API surface for PPM
+- Move frontend API configuration to environment-based settings
+- Expand automated frontend test coverage
+- Add deployment-specific documentation for non-local environments
+- Document database schema creation and migration strategy in more detail
+
+## License
+
+The API package is marked `UNLICENSED`. No separate repository-wide license file is currently included.
