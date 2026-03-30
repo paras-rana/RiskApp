@@ -57,7 +57,8 @@ export default function AppFrame({
   const menuRef = useRef(null);
   const sessionIconName = workspace === WORKSPACES.PPM ? 'portfolio' : 'risk';
   const sessionBandClass = workspace === WORKSPACES.PPM ? 'band-blue' : 'band-orange';
-  const bandState = { index: 0 };
+  const headerBandClass = workspace === WORKSPACES.PPM ? 'band-blue' : 'band-orange';
+  const bandState = { index: 1 };
   const bandedChildren = Children.map(children, (child) => applySectionBands(child, bandState));
 
   useEffect(() => {
@@ -216,7 +217,7 @@ export default function AppFrame({
         </aside>
 
         <main className="app-content">
-          <header className="page-header page-header-split">
+          <header className={`page-header page-header-split ${headerBandClass}`}>
             <div>
               <h1>
                 {detailLabel ? (

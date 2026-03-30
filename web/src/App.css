@@ -23,7 +23,8 @@
   --band-blue: #2f6fdd;
   --band-red: #cf4656;
   --section-band-color: var(--band-purple);
-  --section-band: var(--section-band-color);
+  --section-band: linear-gradient(90deg, var(--section-band-color) 0%, color-mix(in srgb, var(--section-band-color) 72%, white 28%) 58%, rgba(255, 255, 255, 0) 100%);
+  --band-fill: linear-gradient(90deg, color-mix(in srgb, var(--section-band-color) 94%, white 6%) 0%, color-mix(in srgb, var(--section-band-color) 78%, white 22%) 100%);
 }
 
 * {
@@ -178,34 +179,59 @@ body {
   box-shadow: 0 12px 24px rgba(33, 56, 111, 0.12);
 }
 
-.side-nav-link.band-purple.active,
+.side-nav-link.band-purple.active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--band-purple) 94%, white 6%) 0%, color-mix(in srgb, var(--band-purple) 78%, white 22%) 100%);
+}
+
+.side-nav-link.band-orange.active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--band-orange) 94%, white 6%) 0%, color-mix(in srgb, var(--band-orange) 78%, white 22%) 100%);
+}
+
+.side-nav-link.band-green.active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--band-green) 94%, white 6%) 0%, color-mix(in srgb, var(--band-green) 78%, white 22%) 100%);
+}
+
+.side-nav-link.band-blue.active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--band-blue) 94%, white 6%) 0%, color-mix(in srgb, var(--band-blue) 78%, white 22%) 100%);
+}
+
+.side-nav-link.band-red.active {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--band-red) 94%, white 6%) 0%, color-mix(in srgb, var(--band-red) 78%, white 22%) 100%);
+}
+
 .side-nav-link.band-purple::before,
-.workspace-indicator.band-purple::before {
-  background: var(--band-purple);
+.workspace-indicator.band-purple::before,
+.session-panel.band-purple::before,
+.session-panel.band-purple::after,
+.portfolio-summary-card:nth-child(4n + 1)::before {
+  background: linear-gradient(90deg, var(--band-purple) 0%, color-mix(in srgb, var(--band-purple) 72%, white 28%) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-.side-nav-link.band-orange.active,
 .side-nav-link.band-orange::before,
-.workspace-indicator.band-orange::before {
-  background: var(--band-orange);
+.workspace-indicator.band-orange::before,
+.session-panel.band-orange::before,
+.session-panel.band-orange::after,
+.portfolio-summary-card:nth-child(4n + 2)::before {
+  background: linear-gradient(90deg, var(--band-orange) 0%, color-mix(in srgb, var(--band-orange) 72%, white 28%) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-.side-nav-link.band-green.active,
 .side-nav-link.band-green::before,
-.workspace-indicator.band-green::before {
-  background: var(--band-green);
+.workspace-indicator.band-green::before,
+.portfolio-summary-card:nth-child(4n + 3)::before {
+  background: linear-gradient(90deg, var(--band-green) 0%, color-mix(in srgb, var(--band-green) 72%, white 28%) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-.side-nav-link.band-blue.active,
 .side-nav-link.band-blue::before,
-.workspace-indicator.band-blue::before {
-  background: var(--band-blue);
+.workspace-indicator.band-blue::before,
+.session-panel.band-blue::before,
+.session-panel.band-blue::after,
+.portfolio-summary-card:nth-child(4n + 4)::before {
+  background: linear-gradient(90deg, var(--band-blue) 0%, color-mix(in srgb, var(--band-blue) 72%, white 28%) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-.side-nav-link.band-red.active,
 .side-nav-link.band-red::before,
 .workspace-indicator.band-red::before {
-  background: var(--band-red);
+  background: linear-gradient(90deg, var(--band-red) 0%, color-mix(in srgb, var(--band-red) 72%, white 28%) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
 .workspace-indicator {
@@ -286,6 +312,26 @@ body {
   margin-bottom: 18px;
   position: relative;
   overflow: visible;
+}
+
+.page-header.band-purple {
+  --section-band-color: var(--band-purple);
+}
+
+.page-header.band-orange {
+  --section-band-color: var(--band-orange);
+}
+
+.page-header.band-green {
+  --section-band-color: var(--band-green);
+}
+
+.page-header.band-blue {
+  --section-band-color: var(--band-blue);
+}
+
+.page-header.band-red {
+  --section-band-color: var(--band-red);
 }
 
 .page-header::before {
@@ -430,27 +476,27 @@ body {
 
 .panel.band-purple::before,
 .detail-block.detail-section-banded.band-purple::before {
-  background: var(--band-purple);
+  background: var(--section-band);
 }
 
 .panel.band-orange::before,
 .detail-block.detail-section-banded.band-orange::before {
-  background: var(--band-orange);
+  background: var(--section-band);
 }
 
 .panel.band-green::before,
 .detail-block.detail-section-banded.band-green::before {
-  background: var(--band-green);
+  background: var(--section-band);
 }
 
 .panel.band-blue::before,
 .detail-block.detail-section-banded.band-blue::before {
-  background: var(--band-blue);
+  background: var(--section-band);
 }
 
 .panel.band-red::before,
 .detail-block.detail-section-banded.band-red::before {
-  background: var(--band-red);
+  background: var(--section-band);
 }
 
 .session-panel {
@@ -468,7 +514,7 @@ body {
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
-  background: var(--band-purple);
+  background: var(--section-band);
 }
 
 .session-panel::after {
@@ -476,23 +522,7 @@ body {
   position: absolute;
   inset: auto 0 0;
   height: 4px;
-  background: var(--band-purple);
-}
-
-.session-panel.band-orange::before {
-  background: var(--band-orange);
-}
-
-.session-panel.band-orange::after {
-  background: var(--band-orange);
-}
-
-.session-panel.band-blue::before {
-  background: var(--band-blue);
-}
-
-.session-panel.band-blue::after {
-  background: var(--band-blue);
+  background: var(--section-band);
 }
 
 .session-label {
@@ -1912,23 +1942,7 @@ body {
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
-  background: var(--band-purple);
-}
-
-.portfolio-summary-card:nth-child(4n + 1)::before {
-  background: var(--band-purple);
-}
-
-.portfolio-summary-card:nth-child(4n + 2)::before {
-  background: var(--band-orange);
-}
-
-.portfolio-summary-card:nth-child(4n + 3)::before {
-  background: var(--band-green);
-}
-
-.portfolio-summary-card:nth-child(4n + 4)::before {
-  background: var(--band-blue);
+  background: var(--section-band);
 }
 
 .portfolio-summary-card .label {
