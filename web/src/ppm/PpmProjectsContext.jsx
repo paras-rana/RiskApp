@@ -3,11 +3,13 @@ import {
   CURRENT_PROJECT_CLASSIFICATION_OPTIONS,
   EXECUTIVE_SPONSOR_OPTIONS,
   PROJECT_CATEGORY_OPTIONS,
+  SEEDED_OPERATIONAL_INITIATIVES,
   SEEDED_STRATEGIC_PRIORITY_PERIODS,
 } from './ppmConfig';
 
 const PROJECTS_STORAGE_KEY = 'riskapp.ppm.projects';
 const PRIORITIES_STORAGE_KEY = 'riskapp.ppm.priorities';
+const OPERATIONAL_INITIATIVES_STORAGE_KEY = 'riskapp.ppm.operational-initiatives';
 
 const DOCUMENT_CATEGORY_CONFIG = [
   {
@@ -36,9 +38,13 @@ const SEEDED_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
+    operationalInitiativeId: 'AOI-2026-01',
+    operationalInitiativeTitle: 'FY2026 Access Throughput Plan',
+    strategicPriorityId: 'SP-201',
+    strategicPriorityTitle: 'Improve patient access',
     strategicAlignment: 'Improve patient access',
     strategicPriorityPeriodId: 'SPP-2026',
-    strategicPriorityPeriodLabel: 'FY2026 Strategic Priorities',
+    strategicPriorityPeriodLabel: 'Strategic Priorities 2026-2030',
     summary: 'Modernize patient scheduling, intake, and app engagement.',
     costEstimateBreakdownFiles: ['digital-front-door-cost-estimate.xlsx'],
     scopeStatementFiles: ['digital-front-door-scope.pdf'],
@@ -66,10 +72,14 @@ const SEEDED_PROJECTS = [
     estimatedCost: '$3.2M',
     targetStartQuarter: 'Q3 2026',
     category: 'Efficiency',
-    currentProjectClassification: 'Operations Initiative',
+    currentProjectClassification: 'Operational project',
+    operationalInitiativeId: 'AOI-2026-02',
+    operationalInitiativeTitle: 'FY2026 Margin Performance Plan',
+    strategicPriorityId: 'SP-202',
+    strategicPriorityTitle: 'Strengthen operating margin',
     strategicAlignment: 'Strengthen operating margin',
     strategicPriorityPeriodId: 'SPP-2026',
-    strategicPriorityPeriodLabel: 'FY2026 Strategic Priorities',
+    strategicPriorityPeriodLabel: 'Strategic Priorities 2026-2030',
     summary: 'Deploy staffing analytics and schedule redesign across ambulatory sites.',
     costEstimateBreakdownFiles: ['workforce-optimization-estimate.xlsx'],
     scopeStatementFiles: ['workforce-optimization-scope.pdf'],
@@ -97,9 +107,13 @@ const SEEDED_PROJECTS = [
     targetStartQuarter: 'Q4 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
+    operationalInitiativeId: 'AOI-2026-02',
+    operationalInitiativeTitle: 'FY2026 Margin Performance Plan',
+    strategicPriorityId: 'SP-202',
+    strategicPriorityTitle: 'Strengthen operating margin',
     strategicAlignment: 'Strengthen operating margin',
     strategicPriorityPeriodId: 'SPP-2026',
-    strategicPriorityPeriodLabel: 'FY2026 Strategic Priorities',
+    strategicPriorityPeriodLabel: 'Strategic Priorities 2026-2030',
     summary: 'Automate claim exception routing and denial-prevention workflows.',
     costEstimateBreakdownFiles: ['rev-cycle-ai-estimate.xlsx'],
     scopeStatementFiles: ['rev-cycle-ai-scope.pdf'],
@@ -128,9 +142,13 @@ const SEEDED_PROJECTS = [
     targetStartQuarter: 'Q1 2027',
     category: 'Efficiency',
     currentProjectClassification: '',
+    operationalInitiativeId: 'AOI-2026-02',
+    operationalInitiativeTitle: 'FY2026 Margin Performance Plan',
+    strategicPriorityId: 'SP-202',
+    strategicPriorityTitle: 'Strengthen operating margin',
     strategicAlignment: 'Strengthen operating margin',
     strategicPriorityPeriodId: 'SPP-2026',
-    strategicPriorityPeriodLabel: 'FY2026 Strategic Priorities',
+    strategicPriorityPeriodLabel: 'Strategic Priorities 2026-2030',
     summary: 'Unify sourcing, inventory, and shortage alerting into one operating view.',
     costEstimateBreakdownFiles: ['supply-chain-hub-estimate.xlsx'],
     scopeStatementFiles: ['supply-chain-hub-scope.pdf'],
@@ -158,9 +176,13 @@ const SEEDED_PROJECTS = [
     targetStartQuarter: 'Q4 2026',
     category: 'Compliance',
     currentProjectClassification: '',
+    operationalInitiativeId: 'AOI-2026-03',
+    operationalInitiativeTitle: 'FY2026 Platform Resilience Plan',
+    strategicPriorityId: 'SP-203',
+    strategicPriorityTitle: 'Modernize core platforms',
     strategicAlignment: 'Modernize core platforms',
     strategicPriorityPeriodId: 'SPP-2026',
-    strategicPriorityPeriodLabel: 'FY2026 Strategic Priorities',
+    strategicPriorityPeriodLabel: 'Strategic Priorities 2026-2030',
     summary: 'Expand privileged identity controls and recovery testing across core systems.',
     costEstimateBreakdownFiles: ['cyber-resilience-estimate.xlsx'],
     scopeStatementFiles: ['cyber-resilience-scope.pdf'],
@@ -183,12 +205,15 @@ const SEEDED_PROJECTS = [
 ];
 
 function normalizeProject(project) {
+  const normalizedClassification = project.currentProjectClassification === 'Operations Initiative'
+    ? 'Operational project'
+    : project.currentProjectClassification;
   const category = PROJECT_CATEGORY_OPTIONS.includes(project.category)
     ? project.category
     : PROJECT_CATEGORY_OPTIONS[0];
   const currentProjectClassification =
-    CURRENT_PROJECT_CLASSIFICATION_OPTIONS.includes(project.currentProjectClassification)
-      ? project.currentProjectClassification
+    CURRENT_PROJECT_CLASSIFICATION_OPTIONS.includes(normalizedClassification)
+      ? normalizedClassification
       : '';
   const executiveSponsor = LEGACY_EXECUTIVE_SPONSOR_MAP[project.executiveSponsor]
     ?? LEGACY_EXECUTIVE_SPONSOR_MAP[project.sponsor]
@@ -227,6 +252,10 @@ function normalizeProject(project) {
     targetStartQuarter: project.targetStartQuarter ?? project.targetQuarter ?? '',
     category,
     currentProjectClassification,
+    operationalInitiativeId: project.operationalInitiativeId ?? '',
+    operationalInitiativeTitle: project.operationalInitiativeTitle ?? '',
+    strategicPriorityId: project.strategicPriorityId ?? '',
+    strategicPriorityTitle: project.strategicPriorityTitle ?? '',
     strategicAlignment: project.strategicAlignment ?? '',
     projectPurpose: project.projectPurpose ?? project.summary ?? '',
     scopeStatement: project.scopeStatement ?? '',
@@ -302,6 +331,10 @@ function mergeSeededProjectDefaults(project) {
     nextProject.executiveSponsor = seededProject.executiveSponsor;
   }
 
+  if (seededProject.strategicPriorityPeriodLabel && !project.strategicPriorityPeriodLabel) {
+    nextProject.strategicPriorityPeriodLabel = seededProject.strategicPriorityPeriodLabel;
+  }
+
   if (!project.reviewNotes && seededProject.reviewNotes) {
     nextProject.reviewNotes = seededProject.reviewNotes;
   }
@@ -314,24 +347,129 @@ function sortPriorityPeriods(periods) {
     if (left.status === 'active' && right.status !== 'active') return -1;
     if (left.status !== 'active' && right.status === 'active') return 1;
 
-    return String(right.effectiveStart ?? '').localeCompare(String(left.effectiveStart ?? ''));
+    if (Number(right.startYear) !== Number(left.startYear)) {
+      return Number(right.startYear) - Number(left.startYear);
+    }
+
+    if (Number(right.endYear) !== Number(left.endYear)) {
+      return Number(right.endYear) - Number(left.endYear);
+    }
+
+    return String(right.approvedOn ?? '').localeCompare(String(left.approvedOn ?? ''));
   });
 }
 
+function buildPriorityPeriodLabel(startYear, endYear) {
+  const normalizedStartYear = Number(startYear) || new Date().getFullYear();
+  const normalizedEndYear = Number(endYear) || normalizedStartYear;
+  return `Strategic Priorities ${normalizedStartYear}-${normalizedEndYear}`;
+}
+
 function normalizePriorityPeriod(period, index = 0) {
+  const fallbackStartYear = Number(
+    String(period.startYear ?? period.effectiveStart ?? '').slice(0, 4),
+  ) || (new Date().getFullYear() + index);
+  const fallbackEndYear = Number(period.endYear) || fallbackStartYear;
+  const normalizedApprovedOn = period.approvedOn
+    ?? period.effectiveStart
+    ?? `${fallbackStartYear}-01-01`;
+
   return {
     id: period.id ?? `SPP-${Date.now()}-${index + 1}`,
-    label: period.label ?? `Priority Period ${index + 1}`,
-    cadenceLabel: period.cadenceLabel ?? 'Periodic review',
-    effectiveStart: period.effectiveStart ?? '',
+    label: period.label ?? buildPriorityPeriodLabel(fallbackStartYear, fallbackEndYear),
+    approvedOn: normalizedApprovedOn,
+    startYear: fallbackStartYear,
+    endYear: fallbackEndYear,
     status: period.status === 'active' ? 'active' : 'archived',
     priorities: Array.isArray(period.priorities)
       ? period.priorities.map((priority, priorityIndex) => ({
           id: priority.id ?? `SP-${Date.now()}-${index + 1}-${priorityIndex + 1}`,
-          name: priority.name ?? '',
+          title: priority.title ?? priority.name ?? '',
           description: priority.description ?? '',
         }))
       : [],
+  };
+}
+
+function normalizeOperationalInitiative(initiative, index = 0) {
+  const fallbackYear = Number(initiative.year)
+    || Number(String(initiative.approvedOn ?? '').slice(0, 4))
+    || new Date().getFullYear();
+
+  return {
+    id: initiative.id ?? `AOI-${Date.now()}-${index + 1}`,
+    title: initiative.title ?? initiative.name ?? '',
+    year: fallbackYear,
+    strategicPriorityId: initiative.strategicPriorityId ?? '',
+    strategicPriorityTitle: initiative.strategicPriorityTitle ?? initiative.strategicAlignment ?? '',
+    strategicPriorityPeriodId: initiative.strategicPriorityPeriodId ?? '',
+    strategicPriorityPeriodLabel: initiative.strategicPriorityPeriodLabel ?? '',
+    description: initiative.description ?? '',
+  };
+}
+
+function sortOperationalInitiatives(initiatives) {
+  return [...initiatives].sort((left, right) => {
+    if (Number(right.year) !== Number(left.year)) {
+      return Number(right.year) - Number(left.year);
+    }
+
+    return String(left.title ?? '').localeCompare(String(right.title ?? ''));
+  });
+}
+
+function readStoredOperationalInitiatives() {
+  const raw = window.localStorage.getItem(OPERATIONAL_INITIATIVES_STORAGE_KEY);
+  if (!raw) return sortOperationalInitiatives(SEEDED_OPERATIONAL_INITIATIVES);
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return sortOperationalInitiatives(SEEDED_OPERATIONAL_INITIATIVES);
+    }
+
+    return sortOperationalInitiatives(parsed.map(normalizeOperationalInitiative));
+  } catch {
+    window.localStorage.removeItem(OPERATIONAL_INITIATIVES_STORAGE_KEY);
+    return sortOperationalInitiatives(SEEDED_OPERATIONAL_INITIATIVES);
+  }
+}
+
+function findStrategicPriority(priorityPeriods, priorityId, priorityTitle = '') {
+  const priorities = priorityPeriods.flatMap((period) => period.priorities ?? []);
+  return priorities.find((priority) => priority.id === priorityId)
+    ?? priorities.find((priority) => priority.title === priorityTitle)
+    ?? null;
+}
+
+function hydrateProjectAlignment(project, operationalInitiatives, priorityPeriods) {
+  const initiative = operationalInitiatives.find((candidate) => candidate.id === project.operationalInitiativeId)
+    ?? operationalInitiatives.find((candidate) => candidate.title === project.operationalInitiativeTitle)
+    ?? null;
+  const strategicPriority = initiative
+    ? findStrategicPriority(priorityPeriods, initiative.strategicPriorityId, initiative.strategicPriorityTitle)
+    : findStrategicPriority(priorityPeriods, project.strategicPriorityId, project.strategicPriorityTitle || project.strategicAlignment);
+
+  return {
+    ...project,
+    operationalInitiativeId: initiative?.id ?? project.operationalInitiativeId ?? '',
+    operationalInitiativeTitle: initiative?.title ?? project.operationalInitiativeTitle ?? '',
+    strategicPriorityId: strategicPriority?.id
+      ?? initiative?.strategicPriorityId
+      ?? project.strategicPriorityId
+      ?? '',
+    strategicPriorityTitle: strategicPriority?.title
+      ?? initiative?.strategicPriorityTitle
+      ?? project.strategicPriorityTitle
+      ?? project.strategicAlignment
+      ?? '',
+    strategicAlignment: strategicPriority?.title
+      ?? initiative?.strategicPriorityTitle
+      ?? project.strategicPriorityTitle
+      ?? project.strategicAlignment
+      ?? '',
+    strategicPriorityPeriodId: initiative?.strategicPriorityPeriodId ?? project.strategicPriorityPeriodId ?? '',
+    strategicPriorityPeriodLabel: initiative?.strategicPriorityPeriodLabel ?? project.strategicPriorityPeriodLabel ?? '',
   };
 }
 
@@ -361,13 +499,14 @@ function readStoredPriorities() {
       return [
         {
           id: 'SPP-LEGACY',
-          label: 'Imported Strategic Priorities',
-          cadenceLabel: 'Legacy set',
-          effectiveStart: '2026-01-01',
+          label: 'Strategic Priorities 2026-2026',
+          approvedOn: '2026-01-01',
+          startYear: 2026,
+          endYear: 2026,
           status: 'active',
           priorities: parsed.map((priority, index) => ({
             id: priority.id ?? `SP-LEGACY-${index + 1}`,
-            name: priority.name ?? '',
+            title: priority.title ?? priority.name ?? '',
             description: priority.description ?? '',
           })),
         },
@@ -386,6 +525,7 @@ const PpmProjectsContext = createContext(null);
 export function PpmProjectsProvider({ children }) {
   const [projects, setProjects] = useState(() => readStoredProjects());
   const [strategicPriorityPeriods, setStrategicPriorityPeriods] = useState(() => readStoredPriorities());
+  const [operationalInitiatives, setOperationalInitiatives] = useState(() => readStoredOperationalInitiatives());
 
   function persist(nextProjects) {
     setProjects(nextProjects);
@@ -396,6 +536,14 @@ export function PpmProjectsProvider({ children }) {
     const normalized = sortPriorityPeriods(nextPriorities.map(normalizePriorityPeriod));
     setStrategicPriorityPeriods(normalized);
     window.localStorage.setItem(PRIORITIES_STORAGE_KEY, JSON.stringify(normalized));
+  }
+
+  function persistOperationalInitiatives(nextInitiatives) {
+    const normalized = sortOperationalInitiatives(
+      nextInitiatives.map(normalizeOperationalInitiative),
+    );
+    setOperationalInitiatives(normalized);
+    window.localStorage.setItem(OPERATIONAL_INITIATIVES_STORAGE_KEY, JSON.stringify(normalized));
   }
 
   function submitProject(project) {
@@ -420,6 +568,29 @@ export function PpmProjectsProvider({ children }) {
     return nextProject;
   }
 
+  function addOperationalInitiative(initiative) {
+    const strategicPriority = findStrategicPriority(
+      strategicPriorityPeriods,
+      initiative.strategicPriorityId,
+      initiative.strategicPriorityTitle,
+    );
+    const nextInitiative = {
+      id: `AOI-${Math.floor(Date.now() / 1000)}`,
+      title: initiative.title ?? '',
+      year: Number(initiative.year) || new Date().getFullYear(),
+      strategicPriorityId: strategicPriority?.id ?? initiative.strategicPriorityId ?? '',
+      strategicPriorityTitle: strategicPriority?.title ?? initiative.strategicPriorityTitle ?? '',
+      strategicPriorityPeriodId:
+        initiative.strategicPriorityPeriodId ?? activeStrategicPriorityPeriod?.id ?? '',
+      strategicPriorityPeriodLabel:
+        initiative.strategicPriorityPeriodLabel ?? activeStrategicPriorityPeriod?.label ?? '',
+      description: initiative.description ?? '',
+    };
+
+    persistOperationalInitiatives([nextInitiative, ...operationalInitiatives]);
+    return nextInitiative;
+  }
+
   function addStrategicPriorityPeriod(period) {
     const nextPeriods = strategicPriorityPeriods.map((existingPeriod) => ({
       ...existingPeriod,
@@ -428,9 +599,18 @@ export function PpmProjectsProvider({ children }) {
 
     const nextPeriod = {
       id: `SPP-${Math.floor(Date.now() / 1000)}`,
-      ...period,
+      label: buildPriorityPeriodLabel(period.startYear, period.endYear),
+      approvedOn: period.approvedOn,
+      startYear: Number(period.startYear),
+      endYear: Number(period.endYear),
       status: 'active',
-      priorities: [],
+      priorities: Array.isArray(period.priorities)
+        ? period.priorities.map((priority, index) => ({
+            id: priority.id ?? `SP-${Math.floor(Date.now() / 1000)}-${index + 1}`,
+            title: priority.title ?? '',
+            description: priority.description ?? '',
+          }))
+        : [],
     };
 
     persistPriorities([nextPeriod, ...nextPeriods]);
@@ -440,7 +620,8 @@ export function PpmProjectsProvider({ children }) {
   function addStrategicPriority(periodId, priority) {
     const nextPriority = {
       id: `SP-${Math.floor(Date.now() / 1000)}`,
-      ...priority,
+      title: priority.title ?? '',
+      description: priority.description ?? '',
     };
 
     persistPriorities(
@@ -646,21 +827,31 @@ export function PpmProjectsProvider({ children }) {
     [strategicPriorityPeriods],
   );
 
+  const projectsWithAlignment = useMemo(
+    () => projects.map((project) => hydrateProjectAlignment(
+      project,
+      operationalInitiatives,
+      strategicPriorityPeriods,
+    )),
+    [projects, operationalInitiatives, strategicPriorityPeriods],
+  );
+
   const value = useMemo(
     () => ({
-      projects,
-      getProjectById: (projectId) => projects.find((project) => project.id === projectId) ?? null,
-      submittedProjects: projects.filter((project) => project.stage === 'submitted'),
-      futureProjects: projects.filter(
+      projects: projectsWithAlignment,
+      getProjectById: (projectId) => projectsWithAlignment.find((project) => project.id === projectId) ?? null,
+      submittedProjects: projectsWithAlignment.filter((project) => project.stage === 'submitted'),
+      futureProjects: projectsWithAlignment.filter(
         (project) => project.stage === 'future' && project.status !== 'denied',
       ),
-      archivedProposals: projects.filter(
+      archivedProposals: projectsWithAlignment.filter(
         (project) => project.stage === 'archived' || project.status === 'denied',
       ),
-      currentProjects: projects.filter((project) => project.stage === 'current'),
+      currentProjects: projectsWithAlignment.filter((project) => project.stage === 'current'),
       strategicPriorityPeriods,
       activeStrategicPriorityPeriod,
       strategicPriorities: activeStrategicPriorityPeriod?.priorities ?? [],
+      operationalInitiatives,
       submitProject,
       reviewProjectProposal,
       updateFutureStatus,
@@ -669,9 +860,10 @@ export function PpmProjectsProvider({ children }) {
       saveDocumentVersion,
       addStrategicPriorityPeriod,
       addStrategicPriority,
+      addOperationalInitiative,
       activateStrategicPriorityPeriod,
     }),
-    [projects, strategicPriorityPeriods, activeStrategicPriorityPeriod],
+    [projectsWithAlignment, strategicPriorityPeriods, activeStrategicPriorityPeriod, operationalInitiatives],
   );
 
   return (

@@ -39,9 +39,9 @@ export default function PortfolioDashboardPage() {
     ),
     [currentProjects],
   );
-  const operationalInitiatives = useMemo(
+  const operationalProjects = useMemo(
     () => currentProjects.filter(
-      (project) => project.currentProjectClassification === 'Operations Initiative',
+      (project) => project.currentProjectClassification === 'Operational project',
     ),
     [currentProjects],
   );
@@ -49,9 +49,9 @@ export default function PortfolioDashboardPage() {
     () => formatMillions(sumProjectCosts(majorProjects)),
     [majorProjects],
   );
-  const operationalInitiativesApprovedBudget = useMemo(
-    () => formatMillions(sumProjectCosts(operationalInitiatives)),
-    [operationalInitiatives],
+  const operationalProjectsApprovedBudget = useMemo(
+    () => formatMillions(sumProjectCosts(operationalProjects)),
+    [operationalProjects],
   );
   const futurePipelineEstimatedCost = useMemo(
     () => formatMillions(sumProjectCosts(futureProjects)),
@@ -59,7 +59,7 @@ export default function PortfolioDashboardPage() {
   );
   const portfolioSummary = [
     { label: 'Major Projects', value: String(majorProjects.length), note: `Approved Budget: ${majorProjectsApprovedBudget}` },
-    { label: 'Operational Initiatives', value: String(operationalInitiatives.length), note: `Approved Budget: ${operationalInitiativesApprovedBudget}` },
+    { label: 'Operational Projects', value: String(operationalProjects.length), note: `Approved Budget: ${operationalProjectsApprovedBudget}` },
     { label: 'Future Pipeline', value: String(futureProjects.length), note: `Estimated Cost: ${futurePipelineEstimatedCost}` },
     { label: 'New Submissions', value: String(submittedProjects.length), note: 'Awaiting portfolio review' },
   ];
@@ -114,6 +114,7 @@ export default function PortfolioDashboardPage() {
                     <th>Status</th>
                     <th>Project</th>
                     <th>Business Owner</th>
+                    <th>Operational Initiative</th>
                     <th>Strategic Priority</th>
                   </tr>
                 </thead>
@@ -133,13 +134,14 @@ export default function PortfolioDashboardPage() {
                         </td>
                         <td>{project.name}</td>
                         <td>{project.businessOwner || '-'}</td>
-                        <td>{project.strategicAlignment || '-'}</td>
+                        <td>{project.operationalInitiativeTitle || '-'}</td>
+                        <td>{project.strategicPriorityTitle || project.strategicAlignment || '-'}</td>
                       </tr>
                     );
                   })}
                   {majorProjects.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="muted">No major projects are active.</td>
+                      <td colSpan={5} className="muted">No major projects are active.</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -149,8 +151,8 @@ export default function PortfolioDashboardPage() {
 
           <article className="detail-block detail-section-banded band-blue">
             <div className="panel-header-row">
-              <h3>Operational Initiatives</h3>
-              <div className="muted">{operationalInitiatives.length} item(s)</div>
+              <h3>Operational Projects</h3>
+              <div className="muted">{operationalProjects.length} item(s)</div>
             </div>
 
             <div className="table-wrap">
@@ -160,11 +162,12 @@ export default function PortfolioDashboardPage() {
                     <th>Status</th>
                     <th>Initiative</th>
                     <th>Business Owner</th>
+                    <th>Operational Initiative</th>
                     <th>Strategic Priority</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {operationalInitiatives.map((project) => {
+                  {operationalProjects.map((project) => {
                     const indicator = getProjectStatusIndicator(project.status);
 
                     return (
@@ -179,13 +182,14 @@ export default function PortfolioDashboardPage() {
                         </td>
                         <td>{project.name}</td>
                         <td>{project.businessOwner || '-'}</td>
-                        <td>{project.strategicAlignment || '-'}</td>
+                        <td>{project.operationalInitiativeTitle || '-'}</td>
+                        <td>{project.strategicPriorityTitle || project.strategicAlignment || '-'}</td>
                       </tr>
                     );
                   })}
-                  {operationalInitiatives.length === 0 ? (
+                  {operationalProjects.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="muted">No operational initiatives are active.</td>
+                      <td colSpan={5} className="muted">No operational projects are active.</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -231,7 +235,7 @@ export default function PortfolioDashboardPage() {
                   <td>{project.targetStartQuarter}</td>
                   <td>{project.category}</td>
                   <td>{project.stage === 'current' ? project.currentProjectClassification || '-' : '-'}</td>
-                  <td>{project.reviewNotes || project.strategicAlignment || project.summary}</td>
+                  <td>{project.reviewNotes || project.operationalInitiativeTitle || project.summary}</td>
                 </tr>
               ))}
               {spotlightProjects.length === 0 ? (

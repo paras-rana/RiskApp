@@ -39,14 +39,21 @@ function createInitialForm() {
       },
     ],
     category: PROJECT_CATEGORY_OPTIONS[0],
-    strategicAlignment: '',
+    operationalInitiativeId: '',
   };
 }
 
 export default function SubmitProjectPage() {
   const navigate = useNavigate();
-  const { activeStrategicPriorityPeriod, strategicPriorities, submitProject } = usePpmProjects();
+  const {
+    activeStrategicPriorityPeriod,
+    operationalInitiatives,
+    submitProject,
+  } = usePpmProjects();
   const [form, setForm] = useState(() => createInitialForm());
+  const selectedOperationalInitiative = operationalInitiatives.find(
+    (initiative) => initiative.id === form.operationalInitiativeId,
+  ) ?? null;
 
   function onChange(event) {
     const { name, value } = event.target;
@@ -118,6 +125,11 @@ export default function SubmitProjectPage() {
         .split('\n')
         .map((value) => value.trim())
         .filter(Boolean),
+      operationalInitiativeId: selectedOperationalInitiative?.id ?? '',
+      operationalInitiativeTitle: selectedOperationalInitiative?.title ?? '',
+      strategicPriorityId: selectedOperationalInitiative?.strategicPriorityId ?? '',
+      strategicPriorityTitle: selectedOperationalInitiative?.strategicPriorityTitle ?? '',
+      strategicAlignment: selectedOperationalInitiative?.strategicPriorityTitle ?? '',
       milestones: form.milestones
         .map((milestone, index) => ({
           id: milestone.id || `draft-${index + 1}`,
@@ -385,20 +397,27 @@ export default function SubmitProjectPage() {
               </label>
 
               <label>
-                Strategic Alignment
+                Annual Operational Initiative
                 <select
-                  name="strategicAlignment"
-                  value={form.strategicAlignment}
+                  name="operationalInitiativeId"
+                  value={form.operationalInitiativeId}
                   onChange={onChange}
                   required
-                  disabled={!activeStrategicPriorityPeriod}
+                  disabled={!operationalInitiatives.length}
                 >
-                  <option value="" disabled>Select a strategic priority</option>
-                  {strategicPriorities.map((priority) => (
-                    <option key={priority.id} value={priority.name}>{priority.name}</option>
+                  <option value="" disabled>Select an annual operational initiative</option>
+                  {operationalInitiatives.map((initiative) => (
+                    <option key={initiative.id} value={initiative.id}>
+                      {initiative.year} | {initiative.title}
+                    </option>
                   ))}
                 </select>
               </label>
+
+              <div className="detail-block">
+                <div className="label">Strategic Priority</div>
+                <div>{selectedOperationalInitiative?.strategicPriorityTitle || '-'}</div>
+              </div>
             </div>
           </section>
 

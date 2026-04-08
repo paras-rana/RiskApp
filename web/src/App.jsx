@@ -1,3 +1,4 @@
+import AnnualOperationalInitiativesPage from './pages/AnnualOperationalInitiativesPage';
 import {
   BrowserRouter,
   Navigate,
@@ -9,6 +10,8 @@ import './App.css';
 import { useAuth } from './auth/useAuth';
 import { WORKSPACES } from './lib/workspace';
 import CurrentProjectsPage from './pages/CurrentProjectsPage';
+import CreateAnnualOperationalInitiativePage from './pages/CreateAnnualOperationalInitiativePage';
+import CreateStrategicPriorityPeriodPage from './pages/CreateStrategicPriorityPeriodPage';
 import DashboardPage from './pages/DashboardPage';
 import FutureProjectsPage from './pages/FutureProjectsPage';
 import LoginPage from './pages/LoginPage';
@@ -17,6 +20,8 @@ import ProposalReviewPage from './pages/ProposalReviewPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import RiskRegisterPage from './pages/RiskRegisterPage';
 import RiskDetailPage from './pages/RiskDetailPage';
+import OperationalInitiativeRegisterPage from './pages/OperationalInitiativeRegisterPage';
+import StrategicPriorityPeriodRegisterPage from './pages/StrategicPriorityPeriodRegisterPage';
 import StrategicPrioritiesPage from './pages/StrategicPrioritiesPage';
 import SubmissionReviewPage from './pages/SubmissionReviewPage';
 import SubmitProjectPage from './pages/SubmitProjectPage';
@@ -97,6 +102,36 @@ export default function App() {
           )}
         />
         <Route
+          path="/ppm/operational-initiatives"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <AnnualOperationalInitiativesPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/operational-initiatives/new"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <CreateAnnualOperationalInitiativePage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/operational-initiatives/register"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <OperationalInitiativeRegisterPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
           path="/ppm/projects/:projectId"
           element={(
             <RequireAuth>
@@ -152,6 +187,26 @@ export default function App() {
             <RequireAuth>
               <RequireWorkspace allowed={[WORKSPACES.PPM]}>
                 <StrategicPrioritiesPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/strategic-priorities/register"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <StrategicPriorityPeriodRegisterPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/strategic-priorities/new"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <CreateStrategicPriorityPeriodPage />
               </RequireWorkspace>
             </RequireAuth>
           )}

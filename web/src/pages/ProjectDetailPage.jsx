@@ -478,13 +478,13 @@ export default function ProjectDetailPage() {
   const { token, logout } = useAuth();
   const { getProjectById, saveWeeklyUpdate, saveTeamMembers, saveDocumentVersion } = usePpmProjects();
   const project = getProjectById(projectId);
-  const isOperationalInitiative = project?.currentProjectClassification === 'Operations Initiative';
+  const isOperationalProject = project?.currentProjectClassification === 'Operational project';
   const {
     pastWeekStart,
     pastWeekLabel,
     currentWeekStart,
     currentWeekLabel,
-  } = isOperationalInitiative ? getReferenceMonthStarts() : getReferenceWeekStarts();
+  } = isOperationalProject ? getReferenceMonthStarts() : getReferenceWeekStarts();
   const [activeTab, setActiveTab] = useState('key-info');
   const [activeOverlay, setActiveOverlay] = useState(null);
   const [progressForm, setProgressForm] = useState({
@@ -591,32 +591,32 @@ export default function ProjectDetailPage() {
     }),
     { budget: 0, actualToDate: 0, estimateAtCompletion: 0 },
   );
-  const updateCadence = isOperationalInitiative ? 'monthly' : 'weekly';
-  const updateTitle = isOperationalInitiative ? 'Monthly Update' : 'Weekly Update';
-  const progressButtonLabel = isOperationalInitiative ? 'Monthly Progress Update' : 'Progress Update';
-  const progressSummaryLabel = isOperationalInitiative
+  const updateCadence = isOperationalProject ? 'monthly' : 'weekly';
+  const updateTitle = isOperationalProject ? 'Monthly Update' : 'Weekly Update';
+  const progressButtonLabel = isOperationalProject ? 'Monthly Progress Update' : 'Progress Update';
+  const progressSummaryLabel = isOperationalProject
     ? 'Monthly planning and execution snapshot'
     : 'Weekly planning and execution snapshot';
-  const previousPlanHeading = isOperationalInitiative ? 'Previous Month Plan' : 'Previous Week Plan';
-  const pastPeriodProgressLabel = isOperationalInitiative
+  const previousPlanHeading = isOperationalProject ? 'Previous Month Plan' : 'Previous Week Plan';
+  const pastPeriodProgressLabel = isOperationalProject
     ? `Progress Against the Plan for ${pastWeekLabel}`
     : `Progress Against the Plan for the Week of ${pastWeekLabel}`;
-  const currentPeriodPlanLabel = isOperationalInitiative
+  const currentPeriodPlanLabel = isOperationalProject
     ? `Plan for ${currentWeekLabel}`
     : `Plan for the Week of ${currentWeekLabel}`;
-  const emptyPastPlanText = isOperationalInitiative
+  const emptyPastPlanText = isOperationalProject
     ? 'No prior monthly plan is recorded yet.'
     : 'No prior weekly plan is recorded yet.';
-  const emptyPastProgressText = isOperationalInitiative
+  const emptyPastProgressText = isOperationalProject
     ? 'Monthly progress has not been recorded yet.'
     : 'Weekly progress has not been recorded yet.';
-  const currentProgressPlaceholder = isOperationalInitiative
+  const currentProgressPlaceholder = isOperationalProject
     ? 'To be filled in next month after execution progress is reviewed.'
     : 'To be filled in next week after execution progress is reviewed.';
-  const currentReviewPlaceholder = isOperationalInitiative
+  const currentReviewPlaceholder = isOperationalProject
     ? 'To be filled in next month after the monthly review is completed.'
     : 'To be filled in next week after the weekly review is completed.';
-  const periodLabel = isOperationalInitiative ? 'month' : 'week';
+  const periodLabel = isOperationalProject ? 'month' : 'week';
   const pastWeekUpdate = project.weeklyUpdates?.find(
     (entry) => entry.weekStart === pastWeekStart && (entry.cadence ?? 'weekly') === updateCadence,
   ) ?? null;
@@ -679,7 +679,7 @@ export default function ProjectDetailPage() {
                   </div>
 
                   <div className="form-grid single-column">
-                    {isOperationalInitiative ? (
+                    {isOperationalProject ? (
                       <label>
                         Brief Explanation of the Overall Status of the Project
                         <textarea
@@ -864,7 +864,7 @@ export default function ProjectDetailPage() {
           ? `Focus on ${project.milestones[0].name} and keep delivery aligned to ${project.milestones[0].quarter || 'the planned quarter'}.`
           : ''),
       progress: progressForm.progress.trim(),
-      overallStatus: isOperationalInitiative ? progressForm.overallStatus.trim() : '',
+      overallStatus: isOperationalProject ? progressForm.overallStatus.trim() : '',
     });
 
     saveWeeklyUpdate(project.id, {
@@ -930,7 +930,7 @@ export default function ProjectDetailPage() {
           ? `Continue execution on ${project.milestones[0].name} for the current ${periodLabel}.`
           : `Current-${periodLabel} plan has not been defined yet.`);
     const lastWeekProgress = pastWeekUpdate?.progress || emptyPastProgressText;
-    const overallStatusSummary = isOperationalInitiative
+    const overallStatusSummary = isOperationalProject
       ? (pastWeekUpdate?.overallStatus || 'Overall project status has not been recorded yet.')
       : '';
 
@@ -980,8 +980,8 @@ export default function ProjectDetailPage() {
         x: 6.7,
         y: 4.0,
         lines: [
-          `Progress Last ${isOperationalInitiative ? 'Month' : 'Week'}: ${lastWeekProgress}`,
-          `Plan For Next ${isOperationalInitiative ? 'Month' : 'Week'}: ${nextWeekPlan}`,
+          `Progress Last ${isOperationalProject ? 'Month' : 'Week'}: ${lastWeekProgress}`,
+          `Plan For Next ${isOperationalProject ? 'Month' : 'Week'}: ${nextWeekPlan}`,
           ...(overallStatusSummary ? [`Overall Status: ${overallStatusSummary}`] : []),
         ],
       },
@@ -1148,8 +1148,12 @@ export default function ProjectDetailPage() {
                 <div className="value">{project.category || '-'}</div>
               </article>
               <article className="card project-info-card">
-                <div className="label">Strategic Alignment</div>
-                <div className="value">{project.strategicAlignment || '-'}</div>
+                <div className="label">Annual Operational Initiative</div>
+                <div className="value">{project.operationalInitiativeTitle || '-'}</div>
+              </article>
+              <article className="card project-info-card">
+                <div className="label">Strategic Priority</div>
+                <div className="value">{project.strategicPriorityTitle || project.strategicAlignment || '-'}</div>
               </article>
               <article className="card project-info-card">
                 <div className="label">Priority Period</div>
@@ -1284,10 +1288,10 @@ export default function ProjectDetailPage() {
           <table className="simple-table weekly-update-table">
             <thead>
               <tr>
-                <th>{isOperationalInitiative ? 'Month Of' : 'Week Of'}</th>
+                <th>{isOperationalProject ? 'Month Of' : 'Week Of'}</th>
                 <th>Plan</th>
                 <th>Progress</th>
-                <th>{isOperationalInitiative ? 'Overall Status' : 'Review Notes'}</th>
+                <th>{isOperationalProject ? 'Overall Status' : 'Review Notes'}</th>
               </tr>
             </thead>
             <tbody>
@@ -1296,13 +1300,13 @@ export default function ProjectDetailPage() {
                 <td>
                   {pastWeekUpdate?.plan || (project.milestones[0]?.name
                     ? `Focus on ${project.milestones[0].name} and keep delivery aligned to ${project.milestones[0].quarter || 'the planned quarter'}.`
-                    : `${isOperationalInitiative ? 'Monthly' : 'Weekly'} plan has not been defined yet.`)}
+                    : `${isOperationalProject ? 'Monthly' : 'Weekly'} plan has not been defined yet.`)}
                 </td>
                 <td>
                   {pastWeekUpdate?.progress || emptyPastProgressText}
                 </td>
                 <td>
-                  {isOperationalInitiative
+                  {isOperationalProject
                     ? (pastWeekUpdate?.overallStatus || 'Overall project status has not been recorded yet.')
                     : (project.reviewNotes || 'No review notes recorded.')}
                 </td>

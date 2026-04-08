@@ -38,7 +38,8 @@ function renderProjectsTable(projects) {
             <th>Target Quarter for Start</th>
             <th>Category</th>
             <th>Current Classification</th>
-            <th>Strategic Alignment</th>
+            <th>Annual Operational Initiative</th>
+            <th>Strategic Priority</th>
             <th>Summary</th>
           </tr>
         </thead>
@@ -69,7 +70,8 @@ function renderProjectsTable(projects) {
                 <td>{project.targetStartQuarter}</td>
                 <td>{project.category}</td>
                 <td>{project.currentProjectClassification || '-'}</td>
-                <td>{project.strategicAlignment || '-'}</td>
+                <td>{project.operationalInitiativeTitle || '-'}</td>
+                <td>{project.strategicPriorityTitle || project.strategicAlignment || '-'}</td>
                 <td>{project.summary}</td>
               </tr>
             );
@@ -85,8 +87,8 @@ export default function CurrentProjectsPage() {
   const majorProjects = currentProjects.filter(
     (project) => project.currentProjectClassification === 'Major project',
   );
-  const operationalInitiatives = currentProjects.filter(
-    (project) => project.currentProjectClassification === 'Operations Initiative',
+  const operationalProjects = currentProjects.filter(
+    (project) => project.currentProjectClassification === 'Operational project',
   );
 
   return (
@@ -118,13 +120,13 @@ export default function CurrentProjectsPage() {
 
             <article className="detail-block detail-section-banded band-blue">
               <div className="panel-header-row">
-                <h3>Operational Initiatives</h3>
-                <div className="muted">{operationalInitiatives.length} item(s)</div>
+                <h3>Operational Projects</h3>
+                <div className="muted">{operationalProjects.length} item(s)</div>
               </div>
-              {operationalInitiatives.length > 0 ? (
-                renderProjectsTable(operationalInitiatives)
+              {operationalProjects.length > 0 ? (
+                renderProjectsTable(operationalProjects)
               ) : (
-                <p className="muted">No operational initiatives are active.</p>
+                <p className="muted">No operational projects are active.</p>
               )}
             </article>
           </div>

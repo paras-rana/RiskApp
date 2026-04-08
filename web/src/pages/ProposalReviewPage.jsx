@@ -367,8 +367,12 @@ export default function ProposalReviewPage() {
               <div>{project.category || '-'}</div>
             </div>
             <div className="detail-block">
-              <div className="label">Strategic Alignment</div>
-              <div>{project.strategicAlignment || '-'}</div>
+              <div className="label">Annual Operational Initiative</div>
+              <div>{project.operationalInitiativeTitle || '-'}</div>
+            </div>
+            <div className="detail-block">
+              <div className="label">Strategic Priority</div>
+              <div>{project.strategicPriorityTitle || project.strategicAlignment || '-'}</div>
             </div>
           </div>
 

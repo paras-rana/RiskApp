@@ -59,7 +59,7 @@ export default function FutureProjectsPage() {
                 {project.executiveSponsor} | {project.businessOwner} | {project.targetStartQuarter} | {project.estimatedCost}
               </p>
               <p className="muted">
-                {project.category} | {project.strategicAlignment || 'No strategic alignment selected'}
+                {project.category} | {project.operationalInitiativeTitle || 'No annual operational initiative selected'}
               </p>
               <p className="risk-description">{project.summary}</p>
 

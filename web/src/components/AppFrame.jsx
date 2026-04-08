@@ -163,6 +163,16 @@ export default function AppFrame({
                   <Icon name="assessment" />
                   <span className="side-nav-link-label">Strategic Priorities</span>
                 </NavLink>
+                <NavLink
+                  end
+                  className={({ isActive }) => `nav-link side-nav-link band-orange ${isActive ? 'active' : ''}`}
+                  to="/ppm/operational-initiatives"
+                  aria-label="Annual Operational Initiatives"
+                  data-label="Annual Operational Initiatives"
+                >
+                  <Icon name="portfolio" />
+                  <span className="side-nav-link-label">Annual Operational Initiatives</span>
+                </NavLink>
               </>
             ) : null}
             {detailLabel ? (
