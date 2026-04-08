@@ -34,7 +34,7 @@ RiskApp is designed to support two related operational workflows in one interfac
 
 The `ERM` workspace is used to manage enterprise risks from initial identification through mitigation and reassessment. Users can create risks, assign owners, maintain mitigation plans, capture inherent and residual assessments, and review aggregated exposure through matrix-style dashboards.
 
-The `PPM` workspace is used to manage the front end of portfolio governance. Users can submit project proposals, review them, move work into future or active states, maintain strategic priority periods, track current projects, and view project detail records with supporting artifacts and status updates.
+The `PPM` workspace is used to manage the front end of portfolio governance. Users can submit project proposals, review them, move work into future or active states, maintain strategic priority periods, manage annual operational initiatives, track current projects, and view project detail records with supporting artifacts and status updates.
 
 ## Core Functions
 
@@ -52,6 +52,8 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 - Review proposals and approve, deny, hold, or keep work in progress
 - Organize work into submitted, future, current, and archived states
 - Track strategic priority periods and related priorities
+- Maintain annual operational initiatives aligned to strategic priorities
+- Align major projects and operational projects through annual operational initiatives
 - Maintain project details such as milestones, team members, documents, and weekly updates
 - Export project detail content into PowerPoint-ready output
 
@@ -67,10 +69,11 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 
 ### PPM Workflow
 
-1. A user submits a project proposal with summary, schedule, staffing, assumptions, risks, and documents.
-2. Reviewers evaluate the proposal and move it to current work, future work, archive, or work-in-progress.
-3. Approved projects are tracked with milestones, document versions, weekly updates, and team assignments.
-4. Strategic priorities can be managed separately and associated to projects.
+1. Strategic priority periods are maintained separately, with current and historical period registers.
+2. Annual operational initiatives are created under a strategic priority for a specific year.
+3. A user submits a project proposal with summary, schedule, staffing, assumptions, risks, documents, and annual operational initiative alignment.
+4. Reviewers evaluate the proposal and move it to current work, future work, archive, or work-in-progress.
+5. Approved work is tracked as either a major project or an operational project with milestones, document versions, weekly or monthly updates, and team assignments.
 
 ## Screens and Routes
 
@@ -92,7 +95,12 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 - `/ppm/future` - future pipeline and archived views
 - `/ppm/current` - active project tracking
 - `/ppm/projects/:projectId` - project detail view
-- `/ppm/strategic-priorities` - strategic priority period management
+- `/ppm/strategic-priorities` - current strategic priorities view
+- `/ppm/strategic-priorities/register` - historical strategic priority period register
+- `/ppm/strategic-priorities/new` - create a new strategic priority period
+- `/ppm/operational-initiatives` - current annual operational initiatives view
+- `/ppm/operational-initiatives/register` - historical annual operational initiatives register
+- `/ppm/operational-initiatives/new` - create a new annual operational initiative
 
 ## Architecture
 
@@ -108,7 +116,7 @@ The frontend is a React SPA using React Router. It enforces authentication and r
 
 ERM pages call the backend API through a small fetch wrapper in `web/src/lib/api.js`.
 
-PPM is currently implemented as a frontend-managed module. Its project and strategic-priority data are seeded in the browser and persisted in `localStorage` through `PpmProjectsContext`. That means PPM does not currently depend on the NestJS API or PostgreSQL for its main data flow.
+PPM is currently implemented as a frontend-managed module. Its project, strategic-priority, and annual-operational-initiative data are seeded in the browser and persisted in `localStorage` through `PpmProjectsContext`. That means PPM does not currently depend on the NestJS API or PostgreSQL for its main data flow.
 
 ### Backend
 
@@ -196,8 +204,9 @@ Primary client-side stores:
 
 - `riskapp.ppm.projects`
 - `riskapp.ppm.priorities`
+- `riskapp.ppm.operational-initiatives`
 
-Seeded PPM data is normalized on load, including legacy executive sponsor names that are mapped to role-based labels such as `CEO`, `CFO`, and `COO`.
+Seeded PPM data is normalized on load, including legacy executive sponsor names that are mapped to role-based labels such as `CEO`, `CFO`, and `COO`, and legacy operational initiative classification values that are normalized to `Operational project`.
 
 ## Local Development Setup
 
