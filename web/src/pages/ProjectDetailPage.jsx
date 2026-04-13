@@ -9,6 +9,69 @@ import { apiFetch } from '../lib/api';
 import { usePpmProjects } from '../ppm/PpmProjectsContext';
 
 const PROJECT_HEALTH_BY_ID = {
+  'PRJ-301': {
+    scope: 'green',
+    schedule: 'yellow',
+    cost: 'green',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-302': {
+    scope: 'green',
+    schedule: 'green',
+    cost: 'yellow',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-303': {
+    scope: 'green',
+    schedule: 'green',
+    cost: 'green',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-304': {
+    scope: 'green',
+    schedule: 'yellow',
+    cost: 'green',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-305': {
+    scope: 'yellow',
+    schedule: 'yellow',
+    cost: 'green',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-306': {
+    scope: 'green',
+    schedule: 'green',
+    cost: 'yellow',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-307': {
+    scope: 'green',
+    schedule: 'yellow',
+    cost: 'green',
+    risk: 'red',
+    quality: 'green',
+  },
+  'PRJ-308': {
+    scope: 'green',
+    schedule: 'green',
+    cost: 'yellow',
+    risk: 'yellow',
+    quality: 'green',
+  },
+  'PRJ-309': {
+    scope: 'green',
+    schedule: 'green',
+    cost: 'green',
+    risk: 'yellow',
+    quality: 'green',
+  },
   'PRJ-201': {
     scope: 'green',
     schedule: 'yellow',
@@ -47,6 +110,186 @@ const PROJECT_HEALTH_BY_ID = {
 };
 
 const PROJECT_COST_TRACKING_BY_ID = {
+  'PRJ-301': [
+    {
+      item: 'Security control remediation and tooling',
+      budget: 1.3,
+      actualToDate: 0.6,
+      estimateAtCompletion: 1.4,
+    },
+    {
+      item: 'Policy, evidence, and audit preparation',
+      budget: 0.9,
+      actualToDate: 0.3,
+      estimateAtCompletion: 0.8,
+    },
+    {
+      item: 'Program management and training',
+      budget: 0.6,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.6,
+    },
+  ],
+  'PRJ-302': [
+    {
+      item: 'Market assessment and customer analysis',
+      budget: 0.4,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.4,
+    },
+    {
+      item: 'Business modeling and plan development',
+      budget: 0.6,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.6,
+    },
+    {
+      item: 'Stakeholder review and rollout planning',
+      budget: 0.4,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.4,
+    },
+  ],
+  'PRJ-303': [
+    {
+      item: 'Facility inventory and utilization analysis',
+      budget: 0.4,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.4,
+    },
+    {
+      item: 'Scenario planning and portfolio modeling',
+      budget: 0.4,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.4,
+    },
+    {
+      item: 'Action planning and stakeholder engagement',
+      budget: 0.3,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.3,
+    },
+  ],
+  'PRJ-304': [
+    {
+      item: 'Process discovery and requirements workshops',
+      budget: 0.7,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.7,
+    },
+    {
+      item: 'Reporting and data requirements definition',
+      budget: 0.7,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.7,
+    },
+    {
+      item: 'Target-state package and approval support',
+      budget: 0.5,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.5,
+    },
+  ],
+  'PRJ-305': [
+    {
+      item: 'Pilot design and readiness support',
+      budget: 0.8,
+      actualToDate: 0.3,
+      estimateAtCompletion: 0.8,
+    },
+    {
+      item: 'Program adoption and change support',
+      budget: 0.7,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.7,
+    },
+    {
+      item: 'Measurement and pilot evaluation',
+      budget: 0.7,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.7,
+    },
+  ],
+  'PRJ-306': [
+    {
+      item: 'Offer design and launch setup',
+      budget: 0.6,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.6,
+    },
+    {
+      item: 'Production, operations, and fulfillment',
+      budget: 0.7,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.8,
+    },
+    {
+      item: 'Marketing and customer acquisition',
+      budget: 0.4,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.4,
+    },
+  ],
+  'PRJ-307': [
+    {
+      item: 'Partnership setup and launch planning',
+      budget: 1.2,
+      actualToDate: 0.4,
+      estimateAtCompletion: 1.2,
+    },
+    {
+      item: 'Staffing and operating model activation',
+      budget: 1.4,
+      actualToDate: 0.4,
+      estimateAtCompletion: 1.5,
+    },
+    {
+      item: 'Program launch and stabilization support',
+      budget: 1.0,
+      actualToDate: 0.2,
+      estimateAtCompletion: 1.0,
+    },
+  ],
+  'PRJ-308': [
+    {
+      item: 'Growth strategy and customer targeting',
+      budget: 0.9,
+      actualToDate: 0.3,
+      estimateAtCompletion: 0.9,
+    },
+    {
+      item: 'Capex planning and financial modeling',
+      budget: 0.8,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.9,
+    },
+    {
+      item: 'Commercial activation and KPI setup',
+      budget: 0.8,
+      actualToDate: 0.2,
+      estimateAtCompletion: 0.7,
+    },
+  ],
+  'PRJ-309': [
+    {
+      item: 'Reporting framework and data sourcing',
+      budget: 0.3,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.3,
+    },
+    {
+      item: 'Editorial production and design',
+      budget: 0.4,
+      actualToDate: 0.1,
+      estimateAtCompletion: 0.4,
+    },
+    {
+      item: 'Distribution and stakeholder engagement',
+      budget: 0.2,
+      actualToDate: 0.05,
+      estimateAtCompletion: 0.2,
+    },
+  ],
   'PRJ-201': [
     {
       item: 'Platform configuration and integration',
@@ -150,6 +393,159 @@ const PROJECT_COST_TRACKING_BY_ID = {
 };
 
 const PROJECT_MILESTONE_DETAILS_BY_ID = {
+  'PRJ-301': {
+    'MS-301-1': {
+      description: 'Document control gaps, assign owners, and sequence remediation work across the target environment.',
+      plannedDate: '2026-05-23',
+      actualDate: '',
+    },
+    'MS-301-2': {
+      description: 'Deliver control updates, evidence workflows, and readiness checkpoints for priority domains.',
+      plannedDate: '2026-08-21',
+      actualDate: '',
+    },
+    'MS-301-3': {
+      description: 'Complete final readiness review and close remaining issues before external assessment activity.',
+      plannedDate: '2026-11-13',
+      actualDate: '',
+    },
+  },
+  'PRJ-302': {
+    'MS-302-1': {
+      description: 'Assess target segments, customer demand, and growth constraints for the food services business.',
+      plannedDate: '2026-05-29',
+      actualDate: '',
+    },
+    'MS-302-2': {
+      description: 'Define the operating model, economics, and phased investment needs for future growth.',
+      plannedDate: '2026-07-31',
+      actualDate: '',
+    },
+    'MS-302-3': {
+      description: 'Finalize the recommended business plan and decision package for leadership approval.',
+      plannedDate: '2026-09-18',
+      actualDate: '',
+    },
+  },
+  'PRJ-303': {
+    'MS-303-1': {
+      description: 'Baseline facility use, operating cost, and mission alignment across the current asset portfolio.',
+      plannedDate: '2026-05-20',
+      actualDate: '',
+    },
+    'MS-303-2': {
+      description: 'Model utilization, investment, and disposition options for priority buildings and sites.',
+      plannedDate: '2026-08-07',
+      actualDate: '',
+    },
+    'MS-303-3': {
+      description: 'Deliver the prioritized portfolio action plan with sequencing and recommended next steps.',
+      plannedDate: '2026-10-16',
+      actualDate: '',
+    },
+  },
+  'PRJ-304': {
+    'MS-304-1': {
+      description: 'Run discovery sessions and document current-state process and reporting needs across programs.',
+      plannedDate: '2026-05-22',
+      actualDate: '',
+    },
+    'MS-304-2': {
+      description: 'Consolidate business, data, and reporting requirements into a future-state specification package.',
+      plannedDate: '2026-07-24',
+      actualDate: '',
+    },
+    'MS-304-3': {
+      description: 'Secure leadership alignment on requirements and readiness for the next implementation step.',
+      plannedDate: '2026-09-11',
+      actualDate: '',
+    },
+  },
+  'PRJ-305': {
+    'MS-305-1': {
+      description: 'Select pilot sites, define support structures, and confirm baseline measurement criteria.',
+      plannedDate: '2026-05-15',
+      actualDate: '',
+    },
+    'MS-305-2': {
+      description: 'Launch pilots, support adoption, and monitor fidelity to the Theory of Change framework.',
+      plannedDate: '2026-08-14',
+      actualDate: '',
+    },
+    'MS-305-3': {
+      description: 'Evaluate pilot outcomes and recommend the broader rollout model based on results and lessons learned.',
+      plannedDate: '2026-11-20',
+      actualDate: '',
+    },
+  },
+  'PRJ-306': {
+    'MS-306-1': {
+      description: 'Finalize the product concept, pricing, operating flow, and launch readiness criteria.',
+      plannedDate: '2026-07-10',
+      actualDate: '',
+    },
+    'MS-306-2': {
+      description: 'Begin customer delivery and test production, fulfillment, and demand assumptions in market.',
+      plannedDate: '2026-08-21',
+      actualDate: '',
+    },
+    'MS-306-3': {
+      description: 'Refine the model and define the path to scale based on launch performance.',
+      plannedDate: '2026-10-16',
+      actualDate: '',
+    },
+  },
+  'PRJ-307': {
+    'MS-307-1': {
+      description: 'Complete launch planning, partner agreements, and regional operating readiness for Skagit.',
+      plannedDate: '2026-05-29',
+      actualDate: '',
+    },
+    'MS-307-2': {
+      description: 'Activate staffing, referral workflows, and local operating controls for go-live.',
+      plannedDate: '2026-08-28',
+      actualDate: '',
+    },
+    'MS-307-3': {
+      description: 'Stabilize delivery and confirm launch performance against the expansion success criteria.',
+      plannedDate: '2026-11-20',
+      actualDate: '',
+    },
+  },
+  'PRJ-308': {
+    'MS-308-1': {
+      description: 'Confirm customer targets, revenue hypotheses, and diversification priorities across enterprise lines.',
+      plannedDate: '2026-05-21',
+      actualDate: '',
+    },
+    'MS-308-2': {
+      description: 'Complete the capex and commercialization plan aligned to expected growth scenarios.',
+      plannedDate: '2026-08-20',
+      actualDate: '',
+    },
+    'MS-308-3': {
+      description: 'Launch execution governance and KPI tracking for the approved diversification roadmap.',
+      plannedDate: '2026-11-12',
+      actualDate: '',
+    },
+  },
+  'PRJ-309': {
+    'MS-309-1': {
+      description: 'Define the reporting structure, source inputs, and production workflow for quarterly publication.',
+      plannedDate: '2026-05-14',
+      actualDate: '',
+    },
+    'MS-309-2': {
+      description: 'Produce and review the first quarterly impact report with validated data and core messaging.',
+      plannedDate: '2026-07-17',
+      actualDate: '',
+    },
+    'MS-309-3': {
+      description: 'Stabilize the cadence and distribution model to support recurring external communication.',
+      plannedDate: '2026-09-18',
+      actualDate: '',
+    },
+  },
   'PRJ-201': {
     'MS-201-1': {
       description: 'Complete patient journey mapping, intake requirements, and integration design decisions.',
@@ -377,14 +773,8 @@ function drawMilestoneTimeline(slide, pptx, milestones, options) {
   });
 }
 
-function getProjectHealth(projectId) {
-  return PROJECT_HEALTH_BY_ID[projectId] ?? {
-    scope: 'grey',
-    schedule: 'grey',
-    cost: 'grey',
-    risk: 'grey',
-    quality: 'grey',
-  };
+function getConfiguredProjectHealth(projectId) {
+  return PROJECT_HEALTH_BY_ID[projectId] ?? null;
 }
 
 function getOverallHealthTone(health) {
@@ -444,6 +834,90 @@ function getReferenceWeekStarts(date = new Date()) {
     currentWeekStart: getWeekStartIso(currentWeekStart),
     currentWeekLabel: formatWeekStartLabel(currentWeekStart),
     upcomingWeekLabel: formatWeekStartLabel(upcomingWeekStart),
+  };
+}
+
+function parseEstimatedCostMillions(value) {
+  const match = String(value ?? '').match(/(\d+(?:\.\d+)?)/);
+  return Number(match?.[1] ?? 0);
+}
+
+function buildDefaultCostTracking(project) {
+  const total = parseEstimatedCostMillions(project.estimatedCost);
+  if (!total) return [];
+
+  const breakdown = [
+    {
+      item: 'Planning and design',
+      budget: total * 0.35,
+      actualToDate: total * 0.16,
+      estimateAtCompletion: total * 0.35,
+    },
+    {
+      item: 'Execution and coordination',
+      budget: total * 0.45,
+      actualToDate: total * 0.18,
+      estimateAtCompletion: total * 0.47,
+    },
+    {
+      item: 'Reporting and closeout',
+      budget: total * 0.20,
+      actualToDate: total * 0.05,
+      estimateAtCompletion: total * 0.18,
+    },
+  ];
+
+  return breakdown.map((row) => ({
+    ...row,
+    budget: Number(row.budget.toFixed(2)),
+    actualToDate: Number(row.actualToDate.toFixed(2)),
+    estimateAtCompletion: Number(row.estimateAtCompletion.toFixed(2)),
+  }));
+}
+
+function getDefaultHealthForProject(project) {
+  if (project.currentProjectClassification === 'Operational project') {
+    if (project.category === 'Compliance') {
+      return {
+        scope: 'green',
+        schedule: 'green',
+        cost: 'yellow',
+        risk: 'yellow',
+        quality: 'green',
+      };
+    }
+
+    return {
+      scope: 'green',
+      schedule: 'green',
+      cost: 'green',
+      risk: 'yellow',
+      quality: 'green',
+    };
+  }
+
+  return {
+    scope: 'grey',
+    schedule: 'grey',
+    cost: 'grey',
+    risk: 'grey',
+    quality: 'grey',
+  };
+}
+
+function getProjectHealth(project) {
+  return getConfiguredProjectHealth(project.id) || getDefaultHealthForProject(project);
+}
+
+function getProjectCostTracking(project) {
+  return PROJECT_COST_TRACKING_BY_ID[project.id] ?? buildDefaultCostTracking(project);
+}
+
+function getMilestoneDetails(project, milestone) {
+  return PROJECT_MILESTONE_DETAILS_BY_ID[project.id]?.[milestone.id] ?? {
+    description: `Deliver ${milestone.name.toLowerCase()} as part of ${project.operationalInitiativeTitle || 'the current initiative'}.`,
+    plannedDate: milestone.quarter || '-',
+    actualDate: '',
   };
 }
 
@@ -562,7 +1036,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const projectHealth = getProjectHealth(project.id);
+  const projectHealth = getProjectHealth(project);
   const overallHealthTone = getOverallHealthTone(projectHealth);
   const healthCards = [
     { label: 'Scope', tone: projectHealth.scope },
@@ -571,9 +1045,9 @@ export default function ProjectDetailPage() {
     { label: 'Risk', tone: projectHealth.risk },
     { label: 'Quality', tone: projectHealth.quality },
   ];
-  const costTrackingRows = PROJECT_COST_TRACKING_BY_ID[project.id] ?? [];
+  const costTrackingRows = getProjectCostTracking(project);
   const milestoneRows = project.milestones.map((milestone) => {
-    const details = PROJECT_MILESTONE_DETAILS_BY_ID[project.id]?.[milestone.id];
+    const details = getMilestoneDetails(project, milestone);
 
     return {
       id: milestone.id,

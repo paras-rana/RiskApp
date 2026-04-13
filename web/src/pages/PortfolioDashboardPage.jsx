@@ -20,6 +20,34 @@ function getProjectStatusIndicator(status) {
   return { label: 'On hold', tone: 'grey' };
 }
 
+function getDeliveryStatusIndicator(project) {
+  if (project.deliveryStatus === 'red') {
+    return { label: 'At Risk', tone: 'red' };
+  }
+
+  if (project.deliveryStatus === 'yellow') {
+    return { label: 'Watch', tone: 'yellow' };
+  }
+
+  return { label: 'On Track', tone: 'green' };
+}
+
+function getDeliveryPriority(project) {
+  if (project.deliveryStatus === 'red') return 0;
+  if (project.deliveryStatus === 'yellow') return 1;
+  if (project.deliveryStatus === 'green') return 2;
+  return 3;
+}
+
+function sortProjectsForDashboard(projects) {
+  return [...projects].sort((left, right) => {
+    const deliveryDelta = getDeliveryPriority(left) - getDeliveryPriority(right);
+    if (deliveryDelta !== 0) return deliveryDelta;
+
+    return String(left.name ?? '').localeCompare(String(right.name ?? ''));
+  });
+}
+
 function sumProjectCosts(projects) {
   return projects.reduce((sum, project) => {
     const value = Number(String(project.estimatedCost).replace(/[^0-9.]/g, '')) || 0;
@@ -34,16 +62,25 @@ function formatMillions(value) {
 export default function PortfolioDashboardPage() {
   const { currentProjects, futureProjects, submittedProjects } = usePpmProjects();
   const majorProjects = useMemo(
-    () => currentProjects.filter(
-      (project) => project.currentProjectClassification === 'Major project',
+    () => sortProjectsForDashboard(
+      currentProjects.filter(
+        (project) => project.currentProjectClassification === 'Major project',
+      ),
     ),
     [currentProjects],
   );
   const operationalProjects = useMemo(
-    () => currentProjects.filter(
-      (project) => project.currentProjectClassification === 'Operational project',
+    () => sortProjectsForDashboard(
+      currentProjects.filter(
+        (project) => project.currentProjectClassification === 'Operational project',
+      ),
     ),
     [currentProjects],
+  );
+  const majorProjectsPreview = useMemo(() => majorProjects.slice(0, 7), [majorProjects]);
+  const operationalProjectsPreview = useMemo(
+    () => operationalProjects.slice(0, 7),
+    [operationalProjects],
   );
   const majorProjectsApprovedBudget = useMemo(
     () => formatMillions(sumProjectCosts(majorProjects)),
@@ -64,17 +101,21 @@ export default function PortfolioDashboardPage() {
     { label: 'New Submissions', value: String(submittedProjects.length), note: 'Awaiting portfolio review' },
   ];
 
-  const spotlightProjects = [...submittedProjects, ...futureProjects, ...currentProjects].slice(0, 5);
-
   return (
     <AppFrame
       title="Portfolio Dashboard"
       description="PPM workflow across proposal intake, review, future pipeline, and active projects."
       topNavActions={(
-        <Link className="primary-btn" to="/ppm/submit">
-          <Icon name="plus" />
-          Submit Project
-        </Link>
+        <>
+          <Link className="secondary-btn" to="/ppm/register">
+            <Icon name="register" />
+            Portfolio Register
+          </Link>
+          <Link className="primary-btn" to="/ppm/submit">
+            <Icon name="plus" />
+            Submit Project
+          </Link>
+        </>
       )}
     >
       <section className="panel">
@@ -104,7 +145,7 @@ export default function PortfolioDashboardPage() {
           <article className="detail-block detail-section-banded band-purple">
             <div className="panel-header-row">
               <h3>Major Projects</h3>
-              <div className="muted">{majorProjects.length} item(s)</div>
+              <div className="muted">Showing {majorProjectsPreview.length} of {majorProjects.length}</div>
             </div>
 
             <div className="table-wrap">
@@ -115,12 +156,12 @@ export default function PortfolioDashboardPage() {
                     <th>Project</th>
                     <th>Business Owner</th>
                     <th>Operational Initiative</th>
-                    <th>Strategic Priority</th>
+                    <th>Estimated Cost</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {majorProjects.map((project) => {
-                    const indicator = getProjectStatusIndicator(project.status);
+                  {majorProjectsPreview.map((project) => {
+                    const indicator = getDeliveryStatusIndicator(project);
 
                     return (
                       <tr key={project.id}>
@@ -135,11 +176,11 @@ export default function PortfolioDashboardPage() {
                         <td>{project.name}</td>
                         <td>{project.businessOwner || '-'}</td>
                         <td>{project.operationalInitiativeTitle || '-'}</td>
-                        <td>{project.strategicPriorityTitle || project.strategicAlignment || '-'}</td>
+                        <td>{project.estimatedCost || '-'}</td>
                       </tr>
                     );
                   })}
-                  {majorProjects.length === 0 ? (
+                  {majorProjectsPreview.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="muted">No major projects are active.</td>
                     </tr>
@@ -152,7 +193,7 @@ export default function PortfolioDashboardPage() {
           <article className="detail-block detail-section-banded band-blue">
             <div className="panel-header-row">
               <h3>Operational Projects</h3>
-              <div className="muted">{operationalProjects.length} item(s)</div>
+              <div className="muted">Showing {operationalProjectsPreview.length} of {operationalProjects.length}</div>
             </div>
 
             <div className="table-wrap">
@@ -163,12 +204,12 @@ export default function PortfolioDashboardPage() {
                     <th>Initiative</th>
                     <th>Business Owner</th>
                     <th>Operational Initiative</th>
-                    <th>Strategic Priority</th>
+                    <th>Estimated Cost</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {operationalProjects.map((project) => {
-                    const indicator = getProjectStatusIndicator(project.status);
+                  {operationalProjectsPreview.map((project) => {
+                    const indicator = getDeliveryStatusIndicator(project);
 
                     return (
                       <tr key={project.id}>
@@ -183,11 +224,11 @@ export default function PortfolioDashboardPage() {
                         <td>{project.name}</td>
                         <td>{project.businessOwner || '-'}</td>
                         <td>{project.operationalInitiativeTitle || '-'}</td>
-                        <td>{project.strategicPriorityTitle || project.strategicAlignment || '-'}</td>
+                        <td>{project.estimatedCost || '-'}</td>
                       </tr>
                     );
                   })}
-                  {operationalProjects.length === 0 ? (
+                  {operationalProjectsPreview.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="muted">No operational projects are active.</td>
                     </tr>
@@ -199,54 +240,6 @@ export default function PortfolioDashboardPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-header-row">
-          <h2><Icon name="register" />Portfolio Register</h2>
-          <div className="muted">{spotlightProjects.length} highlighted project(s)</div>
-        </div>
-
-        <div className="table-wrap">
-          <table className="simple-table">
-            <thead>
-              <tr>
-                <th>Portfolio ID</th>
-                <th>Name</th>
-                <th>Executive Sponsor</th>
-                <th>Stage</th>
-                <th>Estimated Cost</th>
-                <th>Target Start</th>
-                <th>Category</th>
-                <th>Current Classification</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {spotlightProjects.map((project) => (
-                <tr key={project.id}>
-                  <td>{project.id}</td>
-                  <td>{project.name}</td>
-                  <td>{project.executiveSponsor}</td>
-                  <td>
-                    <span className={`pill ${project.stage === 'current' ? 'low' : project.stage === 'future' ? 'medium' : 'unknown'}`}>
-                      {project.stage}
-                    </span>
-                  </td>
-                  <td>{project.estimatedCost}</td>
-                  <td>{project.targetStartQuarter}</td>
-                  <td>{project.category}</td>
-                  <td>{project.stage === 'current' ? project.currentProjectClassification || '-' : '-'}</td>
-                  <td>{project.reviewNotes || project.operationalInitiativeTitle || project.summary}</td>
-                </tr>
-              ))}
-              {spotlightProjects.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="muted">No project data available yet.</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </AppFrame>
   );
 }

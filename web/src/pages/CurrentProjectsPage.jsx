@@ -23,6 +23,18 @@ function getProjectStatusIndicator(status) {
   return { label: 'Unknown', tone: 'grey' };
 }
 
+function getDeliveryIndicator(project) {
+  if (project.deliveryStatus === 'red') {
+    return { label: 'At Risk', tone: 'red' };
+  }
+
+  if (project.deliveryStatus === 'yellow') {
+    return { label: 'Watch', tone: 'yellow' };
+  }
+
+  return getProjectStatusIndicator(project.status);
+}
+
 function renderProjectsTable(projects) {
   return (
     <div className="table-wrap">
@@ -45,7 +57,7 @@ function renderProjectsTable(projects) {
         </thead>
         <tbody>
           {projects.map((project) => {
-            const indicator = getProjectStatusIndicator(project.status);
+            const indicator = getDeliveryIndicator(project);
 
             return (
               <tr key={project.id}>

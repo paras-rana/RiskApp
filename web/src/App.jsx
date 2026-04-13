@@ -16,6 +16,7 @@ import DashboardPage from './pages/DashboardPage';
 import FutureProjectsPage from './pages/FutureProjectsPage';
 import LoginPage from './pages/LoginPage';
 import PortfolioDashboardPage from './pages/PortfolioDashboardPage';
+import PortfolioRegisterPage from './pages/PortfolioRegisterPage';
 import ProposalReviewPage from './pages/ProposalReviewPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import RiskRegisterPage from './pages/RiskRegisterPage';
@@ -127,6 +128,16 @@ export default function App() {
             <RequireAuth>
               <RequireWorkspace allowed={[WORKSPACES.PPM]}>
                 <OperationalInitiativeRegisterPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/register"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <PortfolioRegisterPage />
               </RequireWorkspace>
             </RequireAuth>
           )}

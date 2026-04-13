@@ -136,6 +136,16 @@ export default function AppFrame({
                 <NavLink
                   end
                   className={({ isActive }) => `nav-link side-nav-link band-blue ${isActive ? 'active' : ''}`}
+                  to="/ppm/register"
+                  aria-label="Portfolio Register"
+                  data-label="Portfolio Register"
+                >
+                  <Icon name="register" />
+                  <span className="side-nav-link-label">Portfolio Register</span>
+                </NavLink>
+                <NavLink
+                  end
+                  className={({ isActive }) => `nav-link side-nav-link band-purple ${isActive ? 'active' : ''}`}
                   to="/ppm/submit"
                   aria-label="Submit Project"
                   data-label="Submit Project"
