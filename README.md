@@ -51,6 +51,7 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 - Submit new project or initiative proposals
 - Review proposals and approve, deny, hold, or keep work in progress
 - Organize work into submitted, future, current, and archived states
+- Explore the portfolio dashboard through clickable summary cards and delivery-status drilldowns
 - Track strategic priority periods and related priorities
 - Maintain annual operational initiatives aligned to strategic priorities
 - Align major projects and operational projects through annual operational initiatives
@@ -73,7 +74,8 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 2. Annual operational initiatives are created under a strategic priority for a specific year.
 3. A user submits a project proposal with summary, schedule, staffing, assumptions, risks, documents, and annual operational initiative alignment.
 4. Reviewers evaluate the proposal and move it to current work, future work, archive, or work-in-progress.
-5. Approved work is tracked as either a major project or an operational project with milestones, document versions, weekly or monthly updates, and team assignments.
+5. The portfolio dashboard summarizes current, future, and submitted work and supports drilldown by project grouping or delivery status.
+6. Approved work is tracked as either a major project or an operational project with milestones, document versions, weekly or monthly updates, and team assignments.
 
 ## Screens and Routes
 
@@ -89,6 +91,7 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 
 ### PPM
 
+- `/dashboard` - PPM portfolio dashboard with summary-card and status-based project drilldowns when the PPM workspace is active
 - `/ppm/submit` - proposal submission form
 - `/ppm/review` - proposal review queue
 - `/ppm/review/:projectId` - review detail page
@@ -117,6 +120,8 @@ The frontend is a React SPA using React Router. It enforces authentication and r
 ERM pages call the backend API through a small fetch wrapper in `web/src/lib/api.js`.
 
 PPM is currently implemented as a frontend-managed module. Its project, strategic-priority, and annual-operational-initiative data are seeded in the browser and persisted in `localStorage` through `PpmProjectsContext`. That means PPM does not currently depend on the NestJS API or PostgreSQL for its main data flow.
+
+The portfolio dashboard itself is interactive: summary cards open filtered project tables for major, operational, future, and submitted work, and the status section groups all projects into red, yellow, and green drilldowns.
 
 ### Backend
 

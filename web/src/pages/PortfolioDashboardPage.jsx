@@ -1,24 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppFrame from '../components/AppFrame';
 import Icon from '../components/Icon';
 import { usePpmProjects } from '../ppm/PpmProjectsContext';
-
-function getProjectStatusIndicator(status) {
-  if (status === 'active') {
-    return { label: 'Active', tone: 'green' };
-  }
-
-  if (status === 'planned') {
-    return { label: 'Planned', tone: 'yellow' };
-  }
-
-  if (status === 'denied') {
-    return { label: 'Denied', tone: 'red' };
-  }
-
-  return { label: 'On hold', tone: 'grey' };
-}
 
 function getDeliveryStatusIndicator(project) {
   if (project.deliveryStatus === 'red') {
@@ -59,8 +43,24 @@ function formatMillions(value) {
   return `$${value.toFixed(1)}M`;
 }
 
+const DELIVERY_STATUS_VISUAL_CONFIG = [
+  { key: 'red', label: 'Off Track', tone: 'red' },
+  { key: 'yellow', label: 'At Risk', tone: 'yellow' },
+  { key: 'green', label: 'On Track', tone: 'green' },
+];
+
+function getDeliveryStatusKey(project) {
+  return project.deliveryStatus === 'red'
+    || project.deliveryStatus === 'yellow'
+    || project.deliveryStatus === 'green'
+    ? project.deliveryStatus
+    : 'green';
+}
+
 export default function PortfolioDashboardPage() {
-  const { currentProjects, futureProjects, submittedProjects } = usePpmProjects();
+  const { projects, currentProjects, futureProjects, submittedProjects } = usePpmProjects();
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  const [selectedSummaryCard, setSelectedSummaryCard] = useState(null);
   const majorProjects = useMemo(
     () => sortProjectsForDashboard(
       currentProjects.filter(
@@ -77,10 +77,13 @@ export default function PortfolioDashboardPage() {
     ),
     [currentProjects],
   );
-  const majorProjectsPreview = useMemo(() => majorProjects.slice(0, 7), [majorProjects]);
-  const operationalProjectsPreview = useMemo(
-    () => operationalProjects.slice(0, 7),
-    [operationalProjects],
+  const futureProjectsSorted = useMemo(
+    () => sortProjectsForDashboard(futureProjects),
+    [futureProjects],
+  );
+  const submittedProjectsSorted = useMemo(
+    () => sortProjectsForDashboard(submittedProjects),
+    [submittedProjects],
   );
   const majorProjectsApprovedBudget = useMemo(
     () => formatMillions(sumProjectCosts(majorProjects)),
@@ -94,12 +97,73 @@ export default function PortfolioDashboardPage() {
     () => formatMillions(sumProjectCosts(futureProjects)),
     [futureProjects],
   );
-  const portfolioSummary = [
-    { label: 'Major Projects', value: String(majorProjects.length), note: `Approved Budget: ${majorProjectsApprovedBudget}` },
-    { label: 'Operational Projects', value: String(operationalProjects.length), note: `Approved Budget: ${operationalProjectsApprovedBudget}` },
-    { label: 'Future Pipeline', value: String(futureProjects.length), note: `Estimated Cost: ${futurePipelineEstimatedCost}` },
-    { label: 'New Submissions', value: String(submittedProjects.length), note: 'Awaiting portfolio review' },
-  ];
+  const portfolioSummary = useMemo(
+    () => [
+      {
+        key: 'major',
+        label: 'Major Projects',
+        value: String(majorProjects.length),
+        note: `Approved Budget: ${majorProjectsApprovedBudget}`,
+        projects: majorProjects,
+      },
+      {
+        key: 'operational',
+        label: 'Operational Projects',
+        value: String(operationalProjects.length),
+        note: `Approved Budget: ${operationalProjectsApprovedBudget}`,
+        projects: operationalProjects,
+      },
+      {
+        key: 'future',
+        label: 'Future Pipeline',
+        value: String(futureProjects.length),
+        note: `Estimated Cost: ${futurePipelineEstimatedCost}`,
+        projects: futureProjectsSorted,
+      },
+      {
+        key: 'submitted',
+        label: 'New Submissions',
+        value: String(submittedProjects.length),
+        note: 'Awaiting portfolio review',
+        projects: submittedProjectsSorted,
+      },
+    ],
+    [
+      futurePipelineEstimatedCost,
+      futureProjects.length,
+      futureProjectsSorted,
+      majorProjects,
+      majorProjects.length,
+      majorProjectsApprovedBudget,
+      operationalProjects,
+      operationalProjects.length,
+      operationalProjectsApprovedBudget,
+      submittedProjects.length,
+      submittedProjectsSorted,
+    ],
+  );
+  const projectsByStatus = useMemo(
+    () => DELIVERY_STATUS_VISUAL_CONFIG.map((statusConfig) => {
+      const matchingProjects = sortProjectsForDashboard(
+        projects.filter((project) => getDeliveryStatusKey(project) === statusConfig.key),
+      );
+
+      return {
+        ...statusConfig,
+        count: matchingProjects.length,
+        projects: matchingProjects,
+      };
+    }),
+    [projects],
+  );
+  const selectedStatusGroup = useMemo(
+    () => projectsByStatus.find((statusGroup) => statusGroup.key === selectedStatus) ?? null,
+    [projectsByStatus, selectedStatus],
+  );
+  const selectedSummaryGroup = useMemo(
+    () => portfolioSummary.find((card) => card.key === selectedSummaryCard) ?? null,
+    [portfolioSummary, selectedSummaryCard],
+  );
 
   return (
     <AppFrame
@@ -126,117 +190,138 @@ export default function PortfolioDashboardPage() {
 
         <div className="cards portfolio-cards">
           {portfolioSummary.map((card) => (
-            <article key={card.label} className="card portfolio-summary-card">
+            <button
+              key={card.key}
+              type="button"
+              className={`card portfolio-summary-card${selectedSummaryGroup?.key === card.key ? ' is-selected' : ''}`}
+              onClick={() => setSelectedSummaryCard((current) => (current === card.key ? null : card.key))}
+              aria-pressed={selectedSummaryGroup?.key === card.key}
+            >
               <div className="label">{card.label}</div>
               <div className="value portfolio-summary-value">{card.value}</div>
               <div className="muted">{card.note}</div>
-            </article>
+            </button>
           ))}
         </div>
+
+        {selectedSummaryGroup ? (
+          <div className="portfolio-summary-drilldown">
+            <div className="panel-header-row">
+              <h3>{selectedSummaryGroup.label}</h3>
+              <div className="muted">{selectedSummaryGroup.projects.length} item(s)</div>
+            </div>
+
+            <div className="table-wrap portfolio-summary-table-wrap">
+              <table className="simple-table">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Stage</th>
+                    <th>Owner</th>
+                    <th>Classification</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedSummaryGroup.projects.map((project) => (
+                    <tr key={project.id}>
+                      <td>
+                        <Link className="table-link" to={`/ppm/projects/${project.id}`}>
+                          {project.name}
+                        </Link>
+                      </td>
+                      <td>{project.stage || '-'}</td>
+                      <td>{project.businessOwner || '-'}</td>
+                      <td>{project.currentProjectClassification || '-'}</td>
+                      <td>{getDeliveryStatusIndicator(project).label}</td>
+                    </tr>
+                  ))}
+                  {!selectedSummaryGroup.projects.length ? (
+                    <tr>
+                      <td colSpan={5} className="muted">No projects are in this view.</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
       </section>
 
-      <section className="panel">
+      <section className="panel band-blue">
         <div className="panel-header-row">
-          <h2><Icon name="portfolio" />Current Work Breakdown</h2>
-          <div className="muted">{currentProjects.length} active item(s)</div>
+          <h2><Icon name="assessment" />Projects By Status</h2>
+          <div className="muted">Select a red, yellow, or green bar to drill into matching projects</div>
         </div>
 
-        <div className="portfolio-project-groups">
-          <article className="detail-block detail-section-banded band-purple">
-            <div className="panel-header-row">
-              <h3>Major Projects</h3>
-              <div className="muted">Showing {majorProjectsPreview.length} of {majorProjects.length}</div>
+        <div className={`portfolio-status-layout${selectedStatusGroup ? ' has-selection' : ''}`}>
+          <div className="portfolio-status-visual-wrap">
+            <div className="portfolio-status-visual" role="list" aria-label="Projects by status">
+              {projectsByStatus.map((statusGroup) => {
+                const isSelected = selectedStatusGroup?.key === statusGroup.key;
+
+                return (
+                  <button
+                    key={statusGroup.key}
+                    type="button"
+                    className={`portfolio-status-bar tone-${statusGroup.tone}${isSelected ? ' is-selected' : ''}`}
+                    onClick={() => setSelectedStatus((current) => (
+                      current === statusGroup.key ? null : statusGroup.key
+                    ))}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="portfolio-status-bar-header">
+                      <span className="portfolio-status-bar-label">{statusGroup.label}</span>
+                      <span className="portfolio-status-bar-count">{statusGroup.count}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            <div className="table-wrap">
-              <table className="simple-table">
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Project</th>
-                    <th>Business Owner</th>
-                    <th>Operational Initiative</th>
-                    <th>Estimated Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {majorProjectsPreview.map((project) => {
-                    const indicator = getDeliveryStatusIndicator(project);
+          {selectedStatusGroup ? (
+            <div className="portfolio-status-drilldown">
+              <div className="panel-header-row">
+                <h3>{selectedStatusGroup.label} Projects</h3>
+                <div className="muted">{selectedStatusGroup.count} item(s)</div>
+              </div>
 
-                    return (
+              <div className="table-wrap portfolio-status-table-wrap">
+                <table className="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Project</th>
+                      <th>Stage</th>
+                      <th>Owner</th>
+                      <th>Classification</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedStatusGroup.projects.map((project) => (
                       <tr key={project.id}>
                         <td>
-                          <span className="status-indicator-cell" title={indicator.label}>
-                            <span
-                              className={`status-indicator-dot ${indicator.tone}`}
-                              aria-hidden="true"
-                            />
-                          </span>
+                          <Link className="table-link" to={`/ppm/projects/${project.id}`}>
+                            {project.name}
+                          </Link>
                         </td>
-                        <td>{project.name}</td>
+                        <td>{project.stage || '-'}</td>
                         <td>{project.businessOwner || '-'}</td>
-                        <td>{project.operationalInitiativeTitle || '-'}</td>
-                        <td>{project.estimatedCost || '-'}</td>
+                        <td>{project.currentProjectClassification || '-'}</td>
+                        <td>{getDeliveryStatusIndicator(project).label}</td>
                       </tr>
-                    );
-                  })}
-                  {majorProjectsPreview.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="muted">No major projects are active.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </article>
-
-          <article className="detail-block detail-section-banded band-blue">
-            <div className="panel-header-row">
-              <h3>Operational Projects</h3>
-              <div className="muted">Showing {operationalProjectsPreview.length} of {operationalProjects.length}</div>
-            </div>
-
-            <div className="table-wrap">
-              <table className="simple-table">
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Initiative</th>
-                    <th>Business Owner</th>
-                    <th>Operational Initiative</th>
-                    <th>Estimated Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {operationalProjectsPreview.map((project) => {
-                    const indicator = getDeliveryStatusIndicator(project);
-
-                    return (
-                      <tr key={project.id}>
-                        <td>
-                          <span className="status-indicator-cell" title={indicator.label}>
-                            <span
-                              className={`status-indicator-dot ${indicator.tone}`}
-                              aria-hidden="true"
-                            />
-                          </span>
-                        </td>
-                        <td>{project.name}</td>
-                        <td>{project.businessOwner || '-'}</td>
-                        <td>{project.operationalInitiativeTitle || '-'}</td>
-                        <td>{project.estimatedCost || '-'}</td>
+                    ))}
+                    {!selectedStatusGroup.projects.length ? (
+                      <tr>
+                        <td colSpan={5} className="muted">No projects are in this status.</td>
                       </tr>
-                    );
-                  })}
-                  {operationalProjectsPreview.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="muted">No operational projects are active.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </article>
+          ) : null}
         </div>
       </section>
 
