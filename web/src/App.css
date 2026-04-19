@@ -2162,6 +2162,150 @@ body {
   overflow: auto;
 }
 
+.portfolio-owner-matrix {
+  margin-top: 20px;
+  border-top: 1px solid rgba(125, 137, 178, 0.28);
+  padding-top: 20px;
+}
+
+.portfolio-owner-status-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+}
+
+.portfolio-owner-status-visual-wrap,
+.portfolio-owner-status-drilldown {
+  min-width: 0;
+}
+
+.portfolio-owner-status-visual-wrap {
+  flex: 1 1 100%;
+  transition: flex-basis 0.32s ease, max-width 0.32s ease, padding-right 0.32s ease;
+  max-width: 100%;
+}
+
+.portfolio-owner-status-layout.has-selection .portfolio-owner-status-visual-wrap,
+.portfolio-owner-status-layout.has-selection .portfolio-owner-status-drilldown {
+  height: 420px;
+}
+
+.portfolio-owner-status-layout.has-selection .portfolio-owner-status-visual-wrap {
+  display: flex;
+  flex: 0 1 calc(50% - 8px);
+  max-width: calc(50% - 8px);
+  padding-right: 16px;
+}
+
+.portfolio-owner-matrix-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+}
+
+.portfolio-owner-matrix-table th[scope="row"] {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.portfolio-owner-matrix-table td {
+  min-width: 92px;
+}
+
+.owner-status-count,
+.owner-status-total {
+  display: inline-flex;
+  width: 100%;
+  min-width: 72px;
+  min-height: 52px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 18px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.owner-status-count:hover,
+.owner-status-count:focus-visible,
+.owner-status-total:hover,
+.owner-status-total:focus-visible {
+  border-color: #a9bce9;
+  box-shadow: 0 8px 20px rgba(33, 56, 111, 0.12);
+  transform: translateY(-1px);
+}
+
+.owner-status-count.tone-red {
+  background: #fde8ec;
+  color: #a6344e;
+}
+
+.owner-status-count.tone-yellow {
+  background: #fef2d2;
+  color: #8f6400;
+}
+
+.owner-status-count.tone-green {
+  background: #e0f3e6;
+  color: #1f6c42;
+}
+
+.owner-status-total {
+  background: #eef3ff;
+  color: #2f4f99;
+}
+
+.owner-status-count.is-selected,
+.owner-status-total.is-selected {
+  border-color: #8fa9e6;
+  box-shadow: 0 10px 22px rgba(33, 56, 111, 0.16);
+}
+
+.portfolio-owner-status-drilldown {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(32px);
+  overflow: hidden;
+  transition:
+    width 0.32s ease,
+    max-width 0.32s ease,
+    opacity 0.24s ease,
+    transform 0.32s ease,
+    padding-left 0.32s ease,
+    border-left-color 0.2s ease;
+}
+
+.portfolio-owner-status-layout.has-selection .portfolio-owner-status-drilldown {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  width: calc(50% - 8px);
+  max-width: calc(50% - 8px);
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.portfolio-owner-status-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .portfolio-lane-count {
   font-size: 32px;
   font-weight: 800;
@@ -2586,6 +2730,40 @@ body {
   }
 
   .portfolio-status-table-wrap {
+    max-height: 420px;
+  }
+
+  .portfolio-owner-status-layout.has-selection .portfolio-owner-status-visual-wrap,
+  .portfolio-owner-status-layout.has-selection .portfolio-owner-status-drilldown {
+    height: auto;
+  }
+
+  .portfolio-owner-status-layout,
+  .portfolio-owner-status-layout.has-selection {
+    display: block;
+  }
+
+  .portfolio-owner-status-visual-wrap,
+  .portfolio-owner-status-layout.has-selection .portfolio-owner-status-visual-wrap {
+    max-width: 100%;
+    padding-right: 0;
+  }
+
+  .portfolio-owner-status-drilldown,
+  .portfolio-owner-status-layout.has-selection .portfolio-owner-status-drilldown {
+    width: auto;
+    max-width: none;
+    transform: none;
+  }
+
+  .portfolio-owner-status-layout.has-selection .portfolio-owner-status-drilldown {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+
+  .portfolio-owner-status-table-wrap {
     max-height: 420px;
   }
 }
