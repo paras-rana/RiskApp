@@ -15,6 +15,34 @@ function getStatusSelectClass(value) {
   return `ppm-status-select tone-${value}`;
 }
 
+function getStatusSelectStyle(value) {
+  if (value === 'green') {
+    return {
+      background: '#e9f8ee',
+      borderColor: '#92d3a7',
+      color: '#15693a',
+    };
+  }
+
+  if (value === 'yellow') {
+    return {
+      background: '#fff5d8',
+      borderColor: '#e7c562',
+      color: '#8a5a00',
+    };
+  }
+
+  if (value === 'red') {
+    return {
+      background: '#fde9ed',
+      borderColor: '#e2a2b0',
+      color: '#8f1f3c',
+    };
+  }
+
+  return null;
+}
+
 const PROJECT_HEALTH_BY_ID = {
   'PRJ-301': { scope: 'green', schedule: 'yellow', cost: 'green', risk: 'yellow', quality: 'green' },
   'PRJ-302': { scope: 'green', schedule: 'green', cost: 'yellow', risk: 'yellow', quality: 'green' },
@@ -49,6 +77,19 @@ function formatMonthYearLabel(value) {
     month: 'short',
     year: 'numeric',
   }).format(parsed).replace(' ', '-');
+}
+
+function formatSlideDate(value) {
+  const normalized = String(value ?? '').trim();
+  if (!normalized || normalized === '-') return '-';
+
+  const parsed = new Date(normalized.length === 7 ? `${normalized}-01T00:00:00` : `${normalized}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return normalized;
+
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const year = String(parsed.getFullYear()).slice(-2);
+  return `${month}/${day}/${year}`;
 }
 
 function getHealthColor(tone) {
@@ -220,46 +261,55 @@ function buildInitiativeDocuments(initiative, relatedProjects) {
   ];
 }
 
-function buildInitiativeMilestones(relatedProjects) {
-  const milestones = relatedProjects.flatMap((project) => (
-    (project.milestones ?? []).map((milestone) => ({
-      id: `${project.id}-${milestone.id}`,
-      title: milestone.name || 'Unnamed milestone',
-      description: `${project.name} milestone`,
-      plannedDate: milestone.quarter || '-',
-      actualDate: '-',
-      projectName: project.name,
-    }))
-  ));
+function buildInitiativeMilestones(initiative) {
+  const milestones = Array.isArray(initiative?.milestones)
+    ? initiative.milestones.map((milestone) => ({
+        id: milestone.id,
+        title: milestone.title || 'Unnamed milestone',
+        description: milestone.description || 'Initiative milestone',
+        plannedDate: milestone.plannedDate || '-',
+        actualDate: milestone.actualDate || '-',
+        originalPlannedDate: milestone.originalPlannedDate || milestone.plannedDate || '',
+        plannedDateChanged: Boolean(
+          milestone.plannedDate
+          && milestone.originalPlannedDate
+          && milestone.plannedDate !== milestone.originalPlannedDate,
+        ),
+      }))
+    : [];
 
   if (milestones.length) {
     return milestones.sort((left, right) => String(left.plannedDate).localeCompare(String(right.plannedDate)));
   }
 
+  const fallbackYear = Number(initiative?.year) || new Date().getFullYear();
   return [
     {
       id: 'milestone-1',
       title: 'Initiative kickoff',
       description: 'Confirm scope, owners, and delivery plan for the initiative.',
-      plannedDate: 'Q1',
+      plannedDate: `${fallbackYear}-03-31`,
       actualDate: '-',
-      projectName: '-',
+      originalPlannedDate: `${fallbackYear}-03-31`,
+      plannedDateChanged: false,
     },
     {
       id: 'milestone-2',
       title: 'Mid-year review',
       description: 'Review status, costs, risks, and any scope adjustments.',
-      plannedDate: 'Q2',
+      plannedDate: `${fallbackYear}-06-30`,
       actualDate: '-',
-      projectName: '-',
+      originalPlannedDate: `${fallbackYear}-06-30`,
+      plannedDateChanged: false,
     },
     {
       id: 'milestone-3',
       title: 'Year-end closeout',
       description: 'Confirm results and close out the initiative year plan.',
-      plannedDate: 'Q4',
+      plannedDate: `${fallbackYear}-12-15`,
       actualDate: '-',
-      projectName: '-',
+      originalPlannedDate: `${fallbackYear}-12-15`,
+      plannedDateChanged: false,
     },
   ];
 }
@@ -453,12 +503,20 @@ function buildMonthlyUpdates(initiative, relatedProjects, milestones) {
 export default function OperationalInitiativeDetailPage() {
   const { initiativeId } = useParams();
   const { token, logout } = useAuth();
-  const { operationalInitiatives, currentProjects, saveOperationalInitiativeMonthlyUpdate } = usePpmProjects();
+  const {
+    operationalInitiatives,
+    currentProjects,
+    saveOperationalInitiativeMonthlyUpdate,
+    saveOperationalInitiativeMilestones,
+    saveOperationalInitiativeOwner,
+  } = usePpmProjects();
   const [activeTab, setActiveTab] = useState('key-info');
   const [initiativeRisks, setInitiativeRisks] = useState([]);
   const [initiativeRisksLoading, setInitiativeRisksLoading] = useState(true);
   const [initiativeRisksError, setInitiativeRisksError] = useState('');
   const [activeOverlay, setActiveOverlay] = useState(null);
+  const [milestoneFormRows, setMilestoneFormRows] = useState([]);
+  const [ownerFormText, setOwnerFormText] = useState('');
   const initiative = operationalInitiatives.find((item) => item.id === initiativeId) ?? null;
 
   const relatedProjects = useMemo(
@@ -508,9 +566,12 @@ export default function OperationalInitiativeDetailPage() {
     monthlyProgressUpdates: [],
   };
   const overallTone = getOverallHealthTone(initiativeHealth);
-  const owners = [...new Set(
+  const rolledUpOwners = [...new Set(
     relatedProjects.map((project) => project.businessOwner?.trim()).filter(Boolean),
   )];
+  const owners = initiative?.owner?.trim()
+    ? [initiative.owner.trim()]
+    : rolledUpOwners;
   const healthCards = [
     { label: 'Scope', tone: initiativeHealth.scope },
     { label: 'Schedule', tone: initiativeHealth.schedule },
@@ -521,7 +582,7 @@ export default function OperationalInitiativeDetailPage() {
   const initiativeOutcomes = buildInitiativeOutcomes(initiative, relatedProjects);
   const initiativeTeam = buildInitiativeTeam(initiative, relatedProjects);
   const initiativeDocuments = buildInitiativeDocuments(initiative, relatedProjects);
-  const milestoneRows = buildInitiativeMilestones(relatedProjects);
+  const milestoneRows = buildInitiativeMilestones(initiative);
   const monthlyUpdates = buildMonthlyUpdates(initiative, relatedProjects, milestoneRows);
   const costTrackingRows = buildInitiativeCostTracking(relatedProjects);
   const costTrackingTotals = costTrackingRows.reduce(
@@ -547,6 +608,45 @@ export default function OperationalInitiativeDetailPage() {
   function openProgressUpdate() {
     setProgressForm(buildInitiativeProgressForm(initiative, initiativeHealth));
     setActiveOverlay('progress-update');
+  }
+
+  function openOwnerEditor() {
+    setOwnerFormText(initiative.owner ?? '');
+    setActiveOverlay('owner-edit');
+  }
+
+  function openMilestoneEditor() {
+    setMilestoneFormRows(
+      milestoneRows.map((milestone, index) => ({
+        id: milestone.id || `AOI-MS-${initiative.id}-${index + 1}`,
+        title: milestone.title || '',
+        description: milestone.description || '',
+        plannedDate: milestone.plannedDate && milestone.plannedDate !== '-' ? milestone.plannedDate : '',
+        originalPlannedDate: milestone.originalPlannedDate || milestone.plannedDate || '',
+        actualDate: milestone.actualDate && milestone.actualDate !== '-' ? milestone.actualDate : '',
+      })),
+    );
+    setActiveOverlay('milestones-edit');
+  }
+
+  function updateMilestoneFormRow(rowId, field, value) {
+    setMilestoneFormRows((current) => current.map((row) => (
+      row.id === rowId ? { ...row, [field]: value } : row
+    )));
+  }
+
+  function addMilestoneFormRow() {
+    setMilestoneFormRows((current) => [
+      ...current,
+      {
+        id: `MS-${initiative.id}-${Date.now()}-${current.length + 1}`,
+        title: '',
+        description: '',
+        plannedDate: '',
+        originalPlannedDate: '',
+        actualDate: '',
+      },
+    ]);
   }
 
   function handleListFieldChange(listName, index, value) {
@@ -581,6 +681,16 @@ export default function OperationalInitiativeDetailPage() {
       helpNeeded: progressForm.helpNeeded.trim(),
       notes: progressForm.notes.trim(),
     });
+    setActiveOverlay(null);
+  }
+
+  function submitMilestones() {
+    saveOperationalInitiativeMilestones(initiative.id, milestoneFormRows);
+    setActiveOverlay(null);
+  }
+
+  function submitOwner() {
+    saveOperationalInitiativeOwner(initiative.id, ownerFormText);
     setActiveOverlay(null);
   }
 
@@ -641,14 +751,12 @@ export default function OperationalInitiativeDetailPage() {
     const decisionsNeededText = exportUpdate?.decisionsNeeded || 'None.';
     const helpNeededText = exportUpdate?.helpNeeded || 'None.';
     const additionalNotesText = exportUpdate?.notes || exportUpdate?.helpNeeded || 'None.';
-    const projectByName = new Map(relatedProjects.map((project) => [project.name, project]));
-    const milestonePreviewRows = milestoneRows.slice(0, 4).map((milestone) => {
-      const sourceProject = projectByName.get(milestone.projectName);
-      return {
-        ...milestone,
-        tone: sourceProject ? getOverallHealthTone(getProjectHealth(sourceProject)) : exportOverallTone,
-      };
-    });
+    const milestonePreviewRows = milestoneRows.slice(0, 4).map((milestone) => ({
+      ...milestone,
+      plannedDateLabel: formatSlideDate(milestone.plannedDate),
+      actualDateLabel: formatSlideDate(milestone.actualDate),
+      tone: exportOverallTone,
+    }));
     const statusBadgeColors = {
       green: { fill: 'E3F9E5', line: '1F9D55', text: '137333' },
       yellow: { fill: 'FFF7D6', line: 'D4A728', text: '8D6E00' },
@@ -765,17 +873,17 @@ export default function OperationalInitiativeDetailPage() {
       });
     };
     slide.addShape(pptx.ShapeType.ellipse, {
-      x: 0.62,
-      y: 0.49,
-      w: 0.17,
-      h: 0.17,
+      x: 0.56,
+      y: 0.35,
+      w: 0.44,
+      h: 0.44,
       line: { color: getHealthColor(exportOverallTone), pt: 1 },
       fill: { color: getHealthColor(exportOverallTone) },
     });
     slide.addText(`${initiative.id} | ${initiative.title}`, {
-      x: 0.86,
-      y: 0.36,
-      w: 8.2,
+      x: 1.08,
+      y: 0.4,
+      w: 7.98,
       h: 0.34,
       fontFace: 'Aptos',
       fontSize: 20,
@@ -806,11 +914,11 @@ export default function OperationalInitiativeDetailPage() {
 
     drawPanel({ x: 0.6, y: 1.08, w: 12.1, h: 1.32, title: 'STATUS SUMMARY' });
     statusDimensions.forEach((dimension, index) => {
-      const startX = 0.82 + (index * 2.32);
+      const startX = 0.82 + (index * 2.25);
       slide.addText(`${dimension.label}`, {
         x: startX,
         y: 1.5,
-        w: 0.72,
+        w: 0.92,
         h: 0.18,
         fontFace: 'Aptos',
         fontSize: 10,
@@ -819,10 +927,17 @@ export default function OperationalInitiativeDetailPage() {
       });
       drawStatusDot({
         tone: dimension.tone,
-        x: startX + 0.82,
+        x: startX + 1.03,
         y: 1.52,
         size: 0.12,
       });
+    });
+    slide.addShape(pptx.ShapeType.line, {
+      x: 0.82,
+      y: 1.72,
+      w: 11.3,
+      h: 0,
+      line: { color: 'D9E2EC', pt: 1 },
     });
     slide.addText(overallStatusSummary, {
       x: 0.82,
@@ -908,7 +1023,7 @@ export default function OperationalInitiativeDetailPage() {
         margin: 0.01,
         fit: 'shrink',
       });
-      slide.addText(milestone.plannedDate || '-', {
+      slide.addText(milestone.plannedDateLabel || '-', {
         x: 9.52,
         y: rowY,
         w: 0.5,
@@ -919,7 +1034,7 @@ export default function OperationalInitiativeDetailPage() {
         align: 'center',
         margin: 0.01,
       });
-      slide.addText(milestone.actualDate || '-', {
+      slide.addText(milestone.actualDateLabel || '-', {
         x: 10.12,
         y: rowY,
         w: 0.6,
@@ -1049,11 +1164,17 @@ export default function OperationalInitiativeDetailPage() {
             onClick={() => setActiveOverlay(null)}
           >
             <aside
-              className={`drawer-panel ${activeOverlay ? 'open' : ''}`}
+              className={`drawer-panel ${activeOverlay ? 'open' : ''} ${activeOverlay === 'milestones-edit' ? 'milestone-edit-drawer' : ''}`}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="drawer-header">
-                <h2>Progress Update</h2>
+                <h2>
+                  {activeOverlay === 'milestones-edit'
+                    ? 'Edit Milestones'
+                    : activeOverlay === 'owner-edit'
+                      ? 'Edit Owner'
+                      : 'Progress Update'}
+                </h2>
                 <button type="button" className="icon-btn" onClick={() => setActiveOverlay(null)}>
                   x
                 </button>
@@ -1084,6 +1205,7 @@ export default function OperationalInitiativeDetailPage() {
                       Overall Project Status
                       <select
                         className={`${getStatusSelectClass(progressForm.overallStatus)} ppm-status-featured-select`}
+                        style={getStatusSelectStyle(progressForm.overallStatus)}
                         value={progressForm.overallStatus}
                         onChange={(event) => setProgressForm((current) => ({
                           ...current,
@@ -1099,6 +1221,7 @@ export default function OperationalInitiativeDetailPage() {
                         Scope
                         <select
                           className={getStatusSelectClass(progressForm.scopeStatus)}
+                          style={getStatusSelectStyle(progressForm.scopeStatus)}
                           value={progressForm.scopeStatus}
                           onChange={(event) => setProgressForm((current) => ({
                             ...current,
@@ -1112,6 +1235,7 @@ export default function OperationalInitiativeDetailPage() {
                         Schedule
                         <select
                           className={getStatusSelectClass(progressForm.scheduleStatus)}
+                          style={getStatusSelectStyle(progressForm.scheduleStatus)}
                           value={progressForm.scheduleStatus}
                           onChange={(event) => setProgressForm((current) => ({
                             ...current,
@@ -1128,6 +1252,7 @@ export default function OperationalInitiativeDetailPage() {
                         Cost
                         <select
                           className={getStatusSelectClass(progressForm.costStatus)}
+                          style={getStatusSelectStyle(progressForm.costStatus)}
                           value={progressForm.costStatus}
                           onChange={(event) => setProgressForm((current) => ({
                             ...current,
@@ -1141,6 +1266,7 @@ export default function OperationalInitiativeDetailPage() {
                         Risk
                         <select
                           className={getStatusSelectClass(progressForm.riskStatus)}
+                          style={getStatusSelectStyle(progressForm.riskStatus)}
                           value={progressForm.riskStatus}
                           onChange={(event) => setProgressForm((current) => ({
                             ...current,
@@ -1157,6 +1283,7 @@ export default function OperationalInitiativeDetailPage() {
                         Quality
                         <select
                           className={getStatusSelectClass(progressForm.qualityStatus)}
+                          style={getStatusSelectStyle(progressForm.qualityStatus)}
                           value={progressForm.qualityStatus}
                           onChange={(event) => setProgressForm((current) => ({
                             ...current,
@@ -1281,6 +1408,122 @@ export default function OperationalInitiativeDetailPage() {
                   </div>
                 </form>
               ) : null}
+
+              {activeOverlay === 'milestones-edit' ? (
+                <form
+                  className="risk-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitMilestones();
+                  }}
+                >
+                  <div className="detail-actions-row milestone-form-actions">
+                    <p className="muted">
+                      Add initiative milestones, change planned dates, and record completion dates.
+                    </p>
+                    <button type="button" className="secondary-btn" onClick={addMilestoneFormRow}>
+                      <Icon name="plus" />
+                      Add Milestone
+                    </button>
+                  </div>
+
+                  <div className="form-grid single-column">
+                    {milestoneFormRows.map((milestone) => (
+                      <div key={milestone.id} className="detail-block milestone-editor-card">
+                        {milestone.originalPlannedDate && milestone.plannedDate && milestone.plannedDate !== milestone.originalPlannedDate ? (
+                          <div className="detail-actions-row">
+                            <span className="pill changed">Planned date changed</span>
+                          </div>
+                        ) : null}
+
+                        <div className="milestone-editor-row">
+                          <label>
+                            Title
+                            <input
+                              value={milestone.title}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'title', event.target.value)}
+                              placeholder="Enter milestone title"
+                            />
+                          </label>
+
+                          <label>
+                            Description
+                            <input
+                              value={milestone.description}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'description', event.target.value)}
+                              placeholder="Enter milestone description"
+                            />
+                          </label>
+
+                          <label>
+                            Planned Date
+                            <input
+                              type="date"
+                              value={milestone.plannedDate}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'plannedDate', event.target.value)}
+                            />
+                          </label>
+
+                          <label>
+                            Actual Date
+                            <input
+                              type="date"
+                              value={milestone.actualDate}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'actualDate', event.target.value)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+
+                    {milestoneFormRows.length === 0 ? (
+                      <p className="muted">No linked milestones yet. Add one and assign it to a major project.</p>
+                    ) : null}
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Save Milestones
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              {activeOverlay === 'owner-edit' ? (
+                <form
+                  className="risk-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitOwner();
+                  }}
+                >
+                  <div className="form-grid single-column">
+                    <label>
+                      Initiative Owner
+                      <input
+                        value={ownerFormText}
+                        onChange={(event) => setOwnerFormText(event.target.value)}
+                        placeholder="Enter initiative owner"
+                      />
+                    </label>
+                    <p className="muted">
+                      Leave blank to fall back to the owners rolled up from linked major projects.
+                    </p>
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Save Owner
+                    </button>
+                  </div>
+                </form>
+              ) : null}
             </aside>
           </div>,
           document.body,
@@ -1304,8 +1547,13 @@ export default function OperationalInitiativeDetailPage() {
             <div className="project-header-meta-value">{initiative.year || '-'}</div>
           </div>
           <div className="project-header-meta-item">
-            <div className="project-header-meta-label">Owners</div>
+            <div className="project-header-meta-label">Owner</div>
             <div className="project-header-meta-value">{owners.length ? owners.join(', ') : '-'}</div>
+          </div>
+          <div className="project-header-meta-item">
+            <button type="button" className="secondary-btn" onClick={openOwnerEditor}>
+              Edit Owner
+            </button>
           </div>
         </div>
       )}
@@ -1375,6 +1623,10 @@ export default function OperationalInitiativeDetailPage() {
               <article className="card project-info-card">
                 <div className="label">Initiative Overview</div>
                 <div className="value">{initiative.description || '-'}</div>
+              </article>
+              <article className="card project-info-card">
+                <div className="label">Owner</div>
+                <div className="value">{owners.length ? owners.join(', ') : '-'}</div>
               </article>
               <article className="card project-info-card">
                 <div className="label">Strategic Priority</div>
@@ -1512,7 +1764,12 @@ export default function OperationalInitiativeDetailPage() {
       <section className="panel">
         <div className="panel-header-row">
           <h2><Icon name="dashboard" />Milestones</h2>
-          <div className="muted">{milestoneRows.length} milestone(s)</div>
+          <div className="detail-actions-row">
+            <div className="muted">{milestoneRows.length} milestone(s)</div>
+            <button type="button" className="secondary-btn" onClick={openMilestoneEditor}>
+              Edit Milestones
+            </button>
+          </div>
         </div>
 
         <div className="table-wrap">
@@ -1523,7 +1780,6 @@ export default function OperationalInitiativeDetailPage() {
                 <th>Description</th>
                 <th>Planned Date</th>
                 <th>Actual Date</th>
-                <th>Source</th>
               </tr>
             </thead>
             <tbody>
@@ -1531,9 +1787,11 @@ export default function OperationalInitiativeDetailPage() {
                 <tr key={milestone.id}>
                   <td>{milestone.title}</td>
                   <td>{milestone.description}</td>
-                  <td>{milestone.plannedDate}</td>
+                  <td className={milestone.plannedDateChanged ? 'milestone-date-cell changed' : 'milestone-date-cell'}>
+                    <span>{milestone.plannedDate}</span>
+                    {milestone.plannedDateChanged ? <span className="pill changed">Changed</span> : null}
+                  </td>
                   <td>{milestone.actualDate}</td>
-                  <td>{milestone.projectName || '-'}</td>
                 </tr>
               ))}
             </tbody>

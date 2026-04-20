@@ -11,9 +11,9 @@ const PROJECTS_STORAGE_KEY = 'riskapp.ppm.projects';
 const PRIORITIES_STORAGE_KEY = 'riskapp.ppm.priorities';
 const OPERATIONAL_INITIATIVES_STORAGE_KEY = 'riskapp.ppm.operational-initiatives';
 const PROJECTS_DATA_VERSION_STORAGE_KEY = 'riskapp.ppm.projects-data-version';
-const PROJECTS_DATA_VERSION = '2026-04-12-major-project-import-1';
+const PROJECTS_DATA_VERSION = '2026-04-18-major-project-import-initiative-ids-1';
 const REFERENCE_DATA_VERSION_STORAGE_KEY = 'riskapp.ppm.reference-data-version';
-const REFERENCE_DATA_VERSION = '2026-04-12-strategies-2024-2029-1';
+const REFERENCE_DATA_VERSION = '2026-04-19-strategies-2024-2029-3';
 
 const DOCUMENT_CATEGORY_CONFIG = [
   {
@@ -42,7 +42,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Compliance',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-15',
+    operationalInitiativeId: '2026.4.4',
     operationalInitiativeTitle: 'Strengthen technology infrastructure, security and collaboration across the organization',
     strategicPriorityId: 'SP-204',
     strategicPriorityTitle: 'Build a supportive ecosystem that fosters innovation',
@@ -99,7 +99,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-09',
+    operationalInitiativeId: '2026.3.2',
     operationalInitiativeTitle: 'Expand and diversify our food services enterprise',
     strategicPriorityId: 'SP-203',
     strategicPriorityTitle: 'Build strong financial resilience',
@@ -156,7 +156,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Efficiency',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-11',
+    operationalInitiativeId: '2026.3.4',
     operationalInitiativeTitle: 'Optimize building assets to support mission and financial performance',
     strategicPriorityId: 'SP-203',
     strategicPriorityTitle: 'Build strong financial resilience',
@@ -213,7 +213,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-01',
+    operationalInitiativeId: '2026.1.1',
     operationalInitiativeTitle: 'Build organizational alignment around the Theory of Change',
     strategicPriorityId: 'SP-201',
     strategicPriorityTitle: 'Create sustainable program impact',
@@ -270,7 +270,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-01',
+    operationalInitiativeId: '2026.1.1',
     operationalInitiativeTitle: 'Build organizational alignment around the Theory of Change',
     strategicPriorityId: 'SP-201',
     strategicPriorityTitle: 'Create sustainable program impact',
@@ -327,7 +327,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q3 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-09',
+    operationalInitiativeId: '2026.3.2',
     operationalInitiativeTitle: 'Expand and diversify our food services enterprise',
     strategicPriorityId: 'SP-203',
     strategicPriorityTitle: 'Build strong financial resilience',
@@ -384,7 +384,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-02',
+    operationalInitiativeId: '2026.1.2',
     operationalInitiativeTitle: 'Establish Pioneer as the leading diversion provider in priority regions',
     strategicPriorityId: 'SP-201',
     strategicPriorityTitle: 'Create sustainable program impact',
@@ -441,7 +441,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-08',
+    operationalInitiativeId: '2026.3.1',
     operationalInitiativeTitle: 'Strengthen the scale and diversification of Pioneer Industries',
     strategicPriorityId: 'SP-203',
     strategicPriorityTitle: 'Build strong financial resilience',
@@ -498,7 +498,7 @@ const SEEDED_MAJOR_PROJECTS = [
     targetStartQuarter: 'Q2 2026',
     category: 'Growth',
     currentProjectClassification: 'Major project',
-    operationalInitiativeId: 'AOI-2026-19',
+    operationalInitiativeId: '2026.5.4',
     operationalInitiativeTitle: 'Elevate visibility of Pioneer\'s impact',
     strategicPriorityId: 'SP-205',
     strategicPriorityTitle: 'Champion systemic changes within the criminal justice system',
@@ -873,7 +873,15 @@ function normalizeProject(project) {
       ? project.milestones.map((milestone, index) => ({
           id: milestone.id ?? `MS-${project.id ?? 'NEW'}-${index + 1}`,
           name: milestone.name ?? '',
-          quarter: milestone.quarter ?? '',
+          description: milestone.description ?? '',
+          quarter: milestone.quarter ?? milestone.plannedDate ?? '',
+          originalQuarter:
+            milestone.originalQuarter
+            ?? milestone.originalPlannedDate
+            ?? milestone.quarter
+            ?? milestone.plannedDate
+            ?? '',
+          actualDate: milestone.actualDate ?? '',
         }))
       : [],
     proposalStatus: project.stage === 'submitted'
@@ -919,6 +927,10 @@ function mergeSeededProjectDefaults(project) {
   }
 
   return normalizeProject(nextProject);
+}
+
+function isOperationalProject(project) {
+  return project.currentProjectClassification === 'Operational project';
 }
 
 function sortPriorityPeriods(periods) {
@@ -996,11 +1008,54 @@ function normalizeOperationalInitiative(initiative, index = 0) {
     id: initiative.id ?? `AOI-${Date.now()}-${index + 1}`,
     title: initiative.title ?? initiative.name ?? '',
     year: fallbackYear,
+    owner: initiative.owner ?? '',
     strategicPriorityId: initiative.strategicPriorityId ?? '',
     strategicPriorityTitle: initiative.strategicPriorityTitle ?? initiative.strategicAlignment ?? '',
     strategicPriorityPeriodId: initiative.strategicPriorityPeriodId ?? '',
     strategicPriorityPeriodLabel: initiative.strategicPriorityPeriodLabel ?? '',
     description: initiative.description ?? '',
+    milestones: Array.isArray(initiative.milestones)
+      ? initiative.milestones.map((milestone, milestoneIndex) => ({
+          id: milestone.id ?? `AOI-MS-${Date.now()}-${index + 1}-${milestoneIndex + 1}`,
+          title: milestone.title ?? milestone.name ?? '',
+          description: milestone.description ?? '',
+          plannedDate: milestone.plannedDate ?? milestone.quarter ?? '',
+          originalPlannedDate:
+            milestone.originalPlannedDate
+            ?? milestone.originalQuarter
+            ?? milestone.plannedDate
+            ?? milestone.quarter
+            ?? '',
+          actualDate: milestone.actualDate ?? '',
+        }))
+      : [],
+    monthlyProgressUpdates: Array.isArray(initiative.monthlyProgressUpdates)
+      ? initiative.monthlyProgressUpdates.map((update, updateIndex) => ({
+          id: update.id ?? `AOI-UPD-${Date.now()}-${index + 1}-${updateIndex + 1}`,
+          month: update.month ?? '',
+          createdAt: update.createdAt ?? '',
+          scopeStatus: update.scopeStatus ?? 'green',
+          scheduleStatus: update.scheduleStatus ?? 'green',
+          costStatus: update.costStatus ?? 'green',
+          riskStatus: update.riskStatus ?? 'green',
+          qualityStatus: update.qualityStatus ?? 'green',
+          overallStatus: update.overallStatus ?? 'green',
+          statusExplanation: update.statusExplanation ?? '',
+          accomplishments: Array.isArray(update.accomplishments)
+            ? update.accomplishments.map((value) => String(value ?? '').trim()).filter(Boolean)
+            : [],
+          commitments: Array.isArray(update.commitments)
+            ? update.commitments.map((value) => String(value ?? '').trim()).filter(Boolean)
+            : [],
+          milestoneChanges: update.milestoneChanges ?? '',
+          newRisks: Array.isArray(update.newRisks)
+            ? update.newRisks.map((value) => String(value ?? '').trim()).filter(Boolean)
+            : [],
+          decisionsNeeded: update.decisionsNeeded ?? '',
+          helpNeeded: update.helpNeeded ?? '',
+          notes: update.notes ?? '',
+        }))
+      : [],
   };
 }
 
@@ -1145,6 +1200,53 @@ export function PpmProjectsProvider({ children }) {
     window.localStorage.setItem(OPERATIONAL_INITIATIVES_STORAGE_KEY, JSON.stringify(normalized));
   }
 
+  function applyProjectMilestoneUpdates(existingProjects, updatesByProject) {
+    const normalizedUpdates = new Map(
+      updatesByProject.map(({ projectId, milestones }) => ([
+        projectId,
+        Array.isArray(milestones)
+          ? milestones
+            .map((milestone, index) => {
+              const name = String(milestone.name ?? '').trim();
+              if (!name) return null;
+              const description = String(milestone.description ?? '').trim();
+
+              const plannedDate = String(
+                milestone.quarter
+                ?? milestone.plannedDate
+                ?? '',
+              ).trim();
+              const originalQuarter = String(
+                milestone.originalQuarter
+                ?? milestone.originalPlannedDate
+                ?? plannedDate,
+              ).trim() || plannedDate;
+              const actualDate = String(milestone.actualDate ?? '').trim();
+
+              return {
+                id: milestone.id ?? `MS-${projectId}-${Date.now()}-${index + 1}`,
+                name,
+                description,
+                quarter: plannedDate,
+                originalQuarter,
+                actualDate,
+              };
+            })
+            .filter(Boolean)
+          : [],
+      ])),
+    );
+
+    return existingProjects.map((project) => (
+      normalizedUpdates.has(project.id)
+        ? {
+            ...project,
+            milestones: normalizedUpdates.get(project.id),
+          }
+        : project
+    ));
+  }
+
   function submitProject(project) {
     const proposalId = `PRJ-${Math.floor(Date.now() / 1000)}`;
     const nextProject = {
@@ -1184,10 +1286,107 @@ export function PpmProjectsProvider({ children }) {
       strategicPriorityPeriodLabel:
         initiative.strategicPriorityPeriodLabel ?? activeStrategicPriorityPeriod?.label ?? '',
       description: initiative.description ?? '',
+      owner: initiative.owner ?? '',
+      milestones: [],
+      monthlyProgressUpdates: [],
     };
 
     persistOperationalInitiatives([nextInitiative, ...operationalInitiatives]);
     return nextInitiative;
+  }
+
+  function saveOperationalInitiativeMonthlyUpdate(initiativeId, monthlyUpdate) {
+    persistOperationalInitiatives(
+      operationalInitiatives.map((initiative) => {
+        if (initiative.id !== initiativeId) return initiative;
+
+        const existingUpdates = Array.isArray(initiative.monthlyProgressUpdates)
+          ? initiative.monthlyProgressUpdates
+          : [];
+        const nextUpdate = normalizeOperationalInitiative({
+          ...initiative,
+          monthlyProgressUpdates: [
+            {
+              id: monthlyUpdate.id ?? `AOI-UPD-${Date.now()}`,
+              month: monthlyUpdate.month ?? new Date().toISOString().slice(0, 7),
+              createdAt: monthlyUpdate.createdAt ?? new Date().toISOString(),
+              scopeStatus: monthlyUpdate.scopeStatus ?? 'green',
+              scheduleStatus: monthlyUpdate.scheduleStatus ?? 'green',
+              costStatus: monthlyUpdate.costStatus ?? 'green',
+              riskStatus: monthlyUpdate.riskStatus ?? 'green',
+              qualityStatus: monthlyUpdate.qualityStatus ?? 'green',
+              overallStatus: monthlyUpdate.overallStatus ?? 'green',
+              statusExplanation: monthlyUpdate.statusExplanation ?? '',
+              accomplishments: monthlyUpdate.accomplishments ?? [],
+              commitments: monthlyUpdate.commitments ?? [],
+              milestoneChanges: monthlyUpdate.milestoneChanges ?? '',
+              newRisks: monthlyUpdate.newRisks ?? [],
+              decisionsNeeded: monthlyUpdate.decisionsNeeded ?? '',
+              helpNeeded: monthlyUpdate.helpNeeded ?? '',
+              notes: monthlyUpdate.notes ?? '',
+            },
+          ],
+        }).monthlyProgressUpdates[0];
+
+        return {
+          ...initiative,
+          monthlyProgressUpdates: [nextUpdate, ...existingUpdates].sort(
+            (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
+          ),
+        };
+      }),
+    );
+  }
+
+  function saveOperationalInitiativeMilestones(initiativeId, milestones) {
+    persistOperationalInitiatives(
+      operationalInitiatives.map((initiative) => {
+        if (initiative.id !== initiativeId) return initiative;
+
+        const nextMilestones = Array.isArray(milestones)
+          ? milestones
+            .map((milestone, index) => {
+              const title = String(milestone.title ?? milestone.name ?? '').trim();
+              if (!title) return null;
+
+              const plannedDate = String(milestone.plannedDate ?? milestone.quarter ?? '').trim();
+              const originalPlannedDate = String(
+                milestone.originalPlannedDate
+                ?? milestone.originalQuarter
+                ?? plannedDate,
+              ).trim() || plannedDate;
+
+              return {
+                id: milestone.id ?? `AOI-MS-${initiativeId}-${Date.now()}-${index + 1}`,
+                title,
+                description: String(milestone.description ?? '').trim(),
+                plannedDate,
+                originalPlannedDate,
+                actualDate: String(milestone.actualDate ?? '').trim(),
+              };
+            })
+            .filter(Boolean)
+          : [];
+
+        return {
+          ...initiative,
+          milestones: nextMilestones,
+        };
+      }),
+    );
+  }
+
+  function saveOperationalInitiativeOwner(initiativeId, owner) {
+    persistOperationalInitiatives(
+      operationalInitiatives.map((initiative) => (
+        initiative.id === initiativeId
+          ? {
+              ...initiative,
+              owner: String(owner ?? '').trim(),
+            }
+          : initiative
+      )),
+    );
   }
 
   function addStrategicPriorityPeriod(period) {
@@ -1419,6 +1618,21 @@ export function PpmProjectsProvider({ children }) {
     );
   }
 
+  function saveProjectMilestones(projectId, milestones) {
+    persist(
+      applyProjectMilestoneUpdates(projects, [{ projectId, milestones }]),
+    );
+  }
+
+  function saveProjectMilestonesBulk(projectMilestoneUpdates) {
+    persist(
+      applyProjectMilestoneUpdates(
+        projects,
+        Array.isArray(projectMilestoneUpdates) ? projectMilestoneUpdates : [],
+      ),
+    );
+  }
+
   const activeStrategicPriorityPeriod = useMemo(
     () => strategicPriorityPeriods.find((period) => period.status === 'active')
       ?? strategicPriorityPeriods[0]
@@ -1434,19 +1648,23 @@ export function PpmProjectsProvider({ children }) {
     )),
     [projects, operationalInitiatives, strategicPriorityPeriods],
   );
+  const visibleProjects = useMemo(
+    () => projectsWithAlignment.filter((project) => !isOperationalProject(project)),
+    [projectsWithAlignment],
+  );
 
   const value = useMemo(
     () => ({
-      projects: projectsWithAlignment,
-      getProjectById: (projectId) => projectsWithAlignment.find((project) => project.id === projectId) ?? null,
-      submittedProjects: projectsWithAlignment.filter((project) => project.stage === 'submitted'),
-      futureProjects: projectsWithAlignment.filter(
+      projects: visibleProjects,
+      getProjectById: (projectId) => visibleProjects.find((project) => project.id === projectId) ?? null,
+      submittedProjects: visibleProjects.filter((project) => project.stage === 'submitted'),
+      futureProjects: visibleProjects.filter(
         (project) => project.stage === 'future' && project.status !== 'denied',
       ),
-      archivedProposals: projectsWithAlignment.filter(
+      archivedProposals: visibleProjects.filter(
         (project) => project.stage === 'archived' || project.status === 'denied',
       ),
-      currentProjects: projectsWithAlignment.filter((project) => project.stage === 'current'),
+      currentProjects: visibleProjects.filter((project) => project.stage === 'current'),
       strategicPriorityPeriods,
       activeStrategicPriorityPeriod,
       strategicPriorities: activeStrategicPriorityPeriod?.priorities ?? [],
@@ -1455,14 +1673,19 @@ export function PpmProjectsProvider({ children }) {
       reviewProjectProposal,
       updateFutureStatus,
       saveWeeklyUpdate,
+      saveOperationalInitiativeMonthlyUpdate,
+      saveOperationalInitiativeMilestones,
+      saveOperationalInitiativeOwner,
       saveTeamMembers,
       saveDocumentVersion,
+      saveProjectMilestones,
+      saveProjectMilestonesBulk,
       addStrategicPriorityPeriod,
       addStrategicPriority,
       addOperationalInitiative,
       activateStrategicPriorityPeriod,
     }),
-    [projectsWithAlignment, strategicPriorityPeriods, activeStrategicPriorityPeriod, operationalInitiatives],
+    [visibleProjects, strategicPriorityPeriods, activeStrategicPriorityPeriod, operationalInitiatives, projects],
   );
 
   return (

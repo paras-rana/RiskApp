@@ -22,6 +22,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage';
 import RiskRegisterPage from './pages/RiskRegisterPage';
 import RiskDetailPage from './pages/RiskDetailPage';
 import OperationalInitiativeRegisterPage from './pages/OperationalInitiativeRegisterPage';
+import OperationalInitiativeDetailPage from './pages/OperationalInitiativeDetailPage';
 import StrategicPriorityPeriodRegisterPage from './pages/StrategicPriorityPeriodRegisterPage';
 import StrategicPrioritiesPage from './pages/StrategicPrioritiesPage';
 import SubmissionReviewPage from './pages/SubmissionReviewPage';
@@ -128,6 +129,16 @@ export default function App() {
             <RequireAuth>
               <RequireWorkspace allowed={[WORKSPACES.PPM]}>
                 <OperationalInitiativeRegisterPage />
+              </RequireWorkspace>
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/ppm/operational-initiatives/:initiativeId"
+          element={(
+            <RequireAuth>
+              <RequireWorkspace allowed={[WORKSPACES.PPM]}>
+                <OperationalInitiativeDetailPage />
               </RequireWorkspace>
             </RequireAuth>
           )}

@@ -128,7 +128,11 @@ function HistoricalYearRows({ year, initiatives, isExpanded, onToggle }) {
                             {priorityTitle}
                           </td>
                         ) : null}
-                        <td>{initiative.title}</td>
+                        <td>
+                          <Link className="table-link" to={`/ppm/operational-initiatives/${initiative.id}`}>
+                            {initiative.title}
+                          </Link>
+                        </td>
                         <td>{initiative.description || '-'}</td>
                       </tr>
                     ))
