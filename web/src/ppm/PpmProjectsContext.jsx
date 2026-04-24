@@ -13,7 +13,7 @@ const OPERATIONAL_INITIATIVES_STORAGE_KEY = 'riskapp.ppm.operational-initiatives
 const PROJECTS_DATA_VERSION_STORAGE_KEY = 'riskapp.ppm.projects-data-version';
 const PROJECTS_DATA_VERSION = '2026-04-18-major-project-import-initiative-ids-1';
 const REFERENCE_DATA_VERSION_STORAGE_KEY = 'riskapp.ppm.reference-data-version';
-const REFERENCE_DATA_VERSION = '2026-04-19-strategies-2024-2029-3';
+const REFERENCE_DATA_VERSION = '2026-04-23-initiative-seed-updates-1';
 
 const DOCUMENT_CATEGORY_CONFIG = [
   {

@@ -113,6 +113,17 @@ function getHealthPriority(tone) {
   return 3;
 }
 
+function getNextMonthValue(value) {
+  const normalized = String(value ?? '').slice(0, 7);
+  const parsed = new Date(`${normalized}-01T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toISOString().slice(0, 7);
+  }
+
+  parsed.setMonth(parsed.getMonth() + 1);
+  return parsed.toISOString().slice(0, 7);
+}
+
 function getRiskBand(score) {
   if (score >= 15) return 'high';
   if (score >= 8) return 'medium';
@@ -141,25 +152,21 @@ function buildInitiativeProgressForm(initiative, initiativeHealth) {
     : null;
 
   return {
-    month: new Date().toISOString().slice(0, 7),
+    month: latestUpdate?.month ? getNextMonthValue(latestUpdate.month) : new Date().toISOString().slice(0, 7),
     scopeStatus: latestUpdate?.scopeStatus ?? initiativeHealth.scope,
     scheduleStatus: latestUpdate?.scheduleStatus ?? initiativeHealth.schedule,
     costStatus: latestUpdate?.costStatus ?? initiativeHealth.cost,
     riskStatus: latestUpdate?.riskStatus ?? initiativeHealth.risk,
     qualityStatus: latestUpdate?.qualityStatus ?? initiativeHealth.quality,
     overallStatus: latestUpdate?.overallStatus ?? getOverallHealthTone(initiativeHealth),
-    statusExplanation: latestUpdate?.statusExplanation ?? '',
-    accomplishments: latestUpdate?.accomplishments?.length
-      ? [...latestUpdate.accomplishments.slice(0, 3), '', '', ''].slice(0, 3)
-      : ['', '', ''],
-    commitments: latestUpdate?.commitments?.length
-      ? [...latestUpdate.commitments.slice(0, 3), '', '', ''].slice(0, 3)
-      : ['', '', ''],
-    milestoneChanges: latestUpdate?.milestoneChanges ?? '',
-    newRisks: latestUpdate?.newRisks?.length ? [...latestUpdate.newRisks] : [''],
-    decisionsNeeded: latestUpdate?.decisionsNeeded ?? '',
-    helpNeeded: latestUpdate?.helpNeeded ?? '',
-    notes: latestUpdate?.notes ?? '',
+    statusExplanation: '',
+    accomplishments: ['', '', ''],
+    commitments: ['', '', ''],
+    milestoneChanges: '',
+    newRisks: [''],
+    decisionsNeeded: '',
+    helpNeeded: '',
+    notes: '',
   };
 }
 
@@ -584,6 +591,17 @@ export default function OperationalInitiativeDetailPage() {
   const initiativeDocuments = buildInitiativeDocuments(initiative, relatedProjects);
   const milestoneRows = buildInitiativeMilestones(initiative);
   const monthlyUpdates = buildMonthlyUpdates(initiative, relatedProjects, milestoneRows);
+  const latestMonthlyProgressUpdate = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
+    ? [...initiative.monthlyProgressUpdates].sort(
+      (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
+    )[0]
+    : null;
+  const priorCommitmentsReference = latestMonthlyProgressUpdate?.commitments?.length
+    ? latestMonthlyProgressUpdate.commitments.slice(0, 3)
+    : [];
+  const priorCommitmentsReferenceLabel = latestMonthlyProgressUpdate?.month
+    ? `Commitments From ${formatMonthYearLabel(latestMonthlyProgressUpdate.month)}`
+    : 'Commitments From Last Month';
   const costTrackingRows = buildInitiativeCostTracking(relatedProjects);
   const costTrackingTotals = costTrackingRows.reduce(
     (totals, row) => ({
@@ -702,12 +720,17 @@ export default function OperationalInitiativeDetailPage() {
     pptx.subject = `${initiative.id} initiative summary`;
     pptx.title = `${initiative.id} | ${initiative.title}`;
 
-    const latestSavedUpdate = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
+    const sortedProgressUpdates = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
       ? [...initiative.monthlyProgressUpdates].sort(
         (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
-      )[0]
-      : null;
+      )
+      : [];
+    const latestSavedUpdate = sortedProgressUpdates[0] ?? null;
     const exportUpdate = selectedUpdate ?? latestSavedUpdate;
+    const exportUpdateIndex = exportUpdate
+      ? sortedProgressUpdates.findIndex((update) => update.month === exportUpdate.month)
+      : -1;
+    const priorUpdate = exportUpdateIndex >= 0 ? sortedProgressUpdates[exportUpdateIndex + 1] ?? null : sortedProgressUpdates[1] ?? null;
     const slide = pptx.addSlide();
     const commitmentsSlide = pptx.addSlide();
     const panelFill = 'FFFFFF';
@@ -740,6 +763,12 @@ export default function OperationalInitiativeDetailPage() {
     const commitmentBullets = exportUpdate?.commitments?.length
       ? exportUpdate.commitments.slice(0, 3)
       : (monthlyUpdates[0]?.plan ? [monthlyUpdates[0].plan] : ['No commitments recorded for next month.']);
+    const priorCommitmentBullets = priorUpdate?.commitments?.length
+      ? priorUpdate.commitments.slice(0, 3)
+      : ['No commitments were recorded for the prior month.'];
+    const priorCommitmentsLabel = priorUpdate?.month
+      ? `${formatMonthYearLabel(priorUpdate.month)} commitments reported this month`
+      : 'Prior month commitments reported this month';
     const riskLines = sortedInitiativeRisks.length > 0
       ? sortedInitiativeRisks.slice(0, 2).map((risk) => {
         const band = getRiskBand((risk.severity_score ?? 0) * (risk.probability_score ?? 0));
@@ -912,12 +941,12 @@ export default function OperationalInitiativeDetailPage() {
       align: 'right',
     });
 
-    drawPanel({ x: 0.6, y: 1.08, w: 12.1, h: 1.32, title: 'STATUS SUMMARY' });
+    drawPanel({ x: 0.6, y: 1.08, w: 12.1, h: 1.15, title: 'STATUS SUMMARY' });
     statusDimensions.forEach((dimension, index) => {
       const startX = 0.82 + (index * 2.25);
       slide.addText(`${dimension.label}`, {
         x: startX,
-        y: 1.5,
+        y: 1.43,
         w: 0.92,
         h: 0.18,
         fontFace: 'Aptos',
@@ -928,22 +957,22 @@ export default function OperationalInitiativeDetailPage() {
       drawStatusDot({
         tone: dimension.tone,
         x: startX + 1.03,
-        y: 1.52,
+        y: 1.45,
         size: 0.12,
       });
     });
     slide.addShape(pptx.ShapeType.line, {
       x: 0.82,
-      y: 1.72,
+      y: 1.64,
       w: 11.3,
       h: 0,
       line: { color: 'D9E2EC', pt: 1 },
     });
     slide.addText(overallStatusSummary, {
       x: 0.82,
-      y: 1.8,
+      y: 1.72,
       w: 11.55,
-      h: 0.18,
+      h: 0.28,
       fontFace: 'Aptos',
       fontSize: 11.5,
       color: '243B53',
@@ -951,14 +980,14 @@ export default function OperationalInitiativeDetailPage() {
       fit: 'shrink',
     });
 
-    drawPanel({ x: 0.6, y: 2.62, w: 5.85, h: 2.18, title: 'PROGRESS THIS MONTH' });
-    slide.addText(renderBullets(progressBullets), {
-      x: 0.84,
-      y: 3.02,
-      w: 5.34,
-      h: 1.5,
+    drawPanel({ x: 0.6, y: 2.28, w: 3.92, h: 2.34, title: 'COMMITMENTS MADE LAST MONTH' });
+    slide.addText(renderBullets(priorCommitmentBullets), {
+      x: 0.78,
+      y: 2.66,
+      w: 3.56,
+      h: 1.7,
       fontFace: 'Aptos',
-      fontSize: 11.5,
+      fontSize: 10.6,
       color: '243B53',
       breakLine: true,
       margin: 0.02,
@@ -966,132 +995,162 @@ export default function OperationalInitiativeDetailPage() {
       valign: 'top',
     });
 
-    drawPanel({ x: 6.85, y: 2.62, w: 5.85, h: 2.18, title: 'MILESTONE SNAPSHOT' });
-    slide.addText('Milestone', {
-      x: 7.08,
-      y: 2.96,
-      w: 2.1,
+    drawPanel({ x: 4.69, y: 2.28, w: 3.92, h: 2.34, title: 'PROGRESS THIS MONTH' });
+    slide.addText(renderBullets(progressBullets), {
+      x: 4.87,
+      y: 2.66,
+      w: 3.56,
+      h: 1.7,
+      fontFace: 'Aptos',
+      fontSize: 10.6,
+      color: '243B53',
+      breakLine: true,
+      margin: 0.02,
+      fit: 'shrink',
+      valign: 'top',
+    });
+
+    drawPanel({ x: 8.78, y: 2.28, w: 3.92, h: 2.34, title: 'MILESTONE SNAPSHOT' });
+    slide.addText('', {
+      x: 8.98,
+      y: 2.64,
+      w: 0.16,
       h: 0.18,
       fontFace: 'Aptos',
-      fontSize: 9,
+      fontSize: 8,
+      bold: true,
+      color: '486581',
+      align: 'center',
+    });
+    slide.addText('Milestone', {
+      x: 9.16,
+      y: 2.64,
+      w: 2.04,
+      h: 0.18,
+      fontFace: 'Aptos',
+      fontSize: 8,
       bold: true,
       color: '486581',
     });
     slide.addText('Due', {
-      x: 9.52,
-      y: 2.96,
-      w: 0.5,
+      x: 11.28,
+      y: 2.64,
+      w: 0.54,
       h: 0.18,
       fontFace: 'Aptos',
-      fontSize: 9,
+      fontSize: 8,
       bold: true,
       color: '486581',
       align: 'center',
     });
     slide.addText('Actual', {
-      x: 10.12,
-      y: 2.96,
-      w: 0.6,
+      x: 11.9,
+      y: 2.64,
+      w: 0.56,
       h: 0.18,
       fontFace: 'Aptos',
-      fontSize: 9,
-      bold: true,
-      color: '486581',
-      align: 'center',
-    });
-    slide.addText('Status', {
-      x: 11.08,
-      y: 2.96,
-      w: 1.15,
-      h: 0.18,
-      fontFace: 'Aptos',
-      fontSize: 9,
+      fontSize: 8,
       bold: true,
       color: '486581',
       align: 'center',
     });
     milestonePreviewRows.forEach((milestone, index) => {
-      const rowY = 3.21 + (index * 0.3);
+      const rowY = 2.9 + (index * 0.34);
+      drawStatusDot({
+        tone: milestone.tone,
+        x: 9.02,
+        y: rowY + 0.05,
+        size: 0.09,
+      });
       slide.addText(milestone.title, {
-        x: 7.08,
+        x: 9.16,
         y: rowY,
-        w: 2.1,
+        w: 2.04,
         h: 0.2,
         fontFace: 'Aptos',
-        fontSize: 8.8,
+        fontSize: 7.5,
         color: '243B53',
         margin: 0.01,
         fit: 'shrink',
       });
       slide.addText(milestone.plannedDateLabel || '-', {
-        x: 9.52,
+        x: 11.28,
         y: rowY,
-        w: 0.5,
+        w: 0.54,
         h: 0.2,
         fontFace: 'Aptos',
-        fontSize: 8.8,
+        fontSize: 7.4,
         color: '243B53',
         align: 'center',
         margin: 0.01,
       });
       slide.addText(milestone.actualDateLabel || '-', {
-        x: 10.12,
+        x: 11.9,
         y: rowY,
-        w: 0.6,
+        w: 0.56,
         h: 0.2,
         fontFace: 'Aptos',
-        fontSize: 8.8,
+        fontSize: 7.4,
         color: '243B53',
         align: 'center',
         margin: 0.01,
       });
-      drawStatusDot({
-        tone: milestone.tone,
-        x: 11.52,
-        y: rowY + 0.03,
-        size: 0.12,
-      });
     });
 
-    drawPanel({ x: 0.6, y: 5.04, w: 5.85, h: 1.28, title: 'DECISIONS NEEDED FROM LEADERSHIP' });
+    drawPanel({ x: 0.6, y: 4.82, w: 5.9, h: 1.05, title: 'DECISIONS NEEDED FROM LEADERSHIP' });
     slide.addText(decisionsNeededText, {
       x: 0.84,
-      y: 5.45,
-      w: 5.34,
-      h: 0.56,
+      y: 5.18,
+      w: 5.36,
+      h: 0.44,
       fontFace: 'Aptos',
       fontSize: 10.8,
       color: '243B53',
       margin: 0.01,
       fit: 'shrink',
+      valign: 'top',
     });
-
-    drawPanel({ x: 6.85, y: 5.04, w: 5.85, h: 1.28, title: 'ADDITIONAL NOTES' });
-    slide.addText(additionalNotesText, {
-      x: 7.08,
-      y: 5.45,
-      w: 5.34,
-      h: 0.56,
+    drawPanel({ x: 6.8, y: 4.82, w: 5.9, h: 1.05, title: 'HELP NEEDED' });
+    slide.addText(helpNeededText, {
+      x: 7.04,
+      y: 5.18,
+      w: 5.36,
+      h: 0.44,
       fontFace: 'Aptos',
-      fontSize: 10.7,
+      fontSize: 10.8,
       color: '243B53',
       margin: 0.01,
       fit: 'shrink',
+      valign: 'top',
     });
 
-    drawPanelOnSlide(commitmentsSlide, { x: 0.6, y: 1.08, w: 12.1, h: 3.15, title: 'NEXT MONTH\'S COMMITMENTS' });
+    drawPanelOnSlide(commitmentsSlide, { x: 0.6, y: 1.08, w: 5.9, h: 3.15, title: 'RISKS' });
+    commitmentsSlide.addText(renderBullets(riskLines), {
+      x: 0.9,
+      y: 1.52,
+      w: 5.15,
+      h: 2.2,
+      fontFace: 'Aptos',
+      fontSize: 12.5,
+      color: '243B53',
+      breakLine: true,
+      margin: 0.02,
+      fit: 'shrink',
+      valign: 'top',
+    });
+    drawPanelOnSlide(commitmentsSlide, { x: 6.8, y: 1.08, w: 5.9, h: 3.15, title: 'NEXT MONTH\'S COMMITMENTS' });
     commitmentsSlide.addShape(pptx.ShapeType.ellipse, {
-      x: 0.62,
-      y: 0.49,
-      w: 0.17,
-      h: 0.17,
+      x: 0.56,
+      y: 0.35,
+      w: 0.44,
+      h: 0.44,
       line: { color: getHealthColor(exportOverallTone), pt: 1 },
       fill: { color: getHealthColor(exportOverallTone) },
     });
     commitmentsSlide.addText(`${initiative.id} | ${initiative.title}`, {
-      x: 0.86,
-      y: 0.36,
-      w: 8.2,
+      x: 1.08,
+      y: 0.4,
+      w: 7.98,
       h: 0.34,
       fontFace: 'Aptos',
       fontSize: 20,
@@ -1120,9 +1179,9 @@ export default function OperationalInitiativeDetailPage() {
       align: 'right',
     });
     commitmentsSlide.addText(renderBullets(commitmentBullets), {
-      x: 0.9,
+      x: 7.1,
       y: 1.52,
-      w: 11.2,
+      w: 5.1,
       h: 2.35,
       fontFace: 'Aptos',
       fontSize: 14,
@@ -1132,14 +1191,14 @@ export default function OperationalInitiativeDetailPage() {
       fit: 'shrink',
       valign: 'top',
     });
-    drawPanelOnSlide(commitmentsSlide, { x: 0.6, y: 4.45, w: 12.1, h: 1.45, title: 'HELP NEEDED' });
-    commitmentsSlide.addText(helpNeededText, {
+    drawPanelOnSlide(commitmentsSlide, { x: 0.6, y: 4.45, w: 12.1, h: 1.45, title: 'ADDITIONAL NOTES' });
+    commitmentsSlide.addText(additionalNotesText, {
       x: 0.9,
       y: 4.88,
       w: 11.2,
       h: 0.72,
       fontFace: 'Aptos',
-      fontSize: 12,
+      fontSize: 11.5,
       color: '243B53',
       margin: 0.01,
       fit: 'shrink',
@@ -1158,13 +1217,13 @@ export default function OperationalInitiativeDetailPage() {
 
   const overlay =
     typeof document !== 'undefined'
-      ? createPortal(
+        ? createPortal(
           <div
-            className={`drawer-overlay ${activeOverlay ? 'open' : ''}`}
+            className={`drawer-overlay ${activeOverlay ? 'open' : ''} ${activeOverlay === 'progress-update' ? 'modal-overlay' : ''}`}
             onClick={() => setActiveOverlay(null)}
           >
             <aside
-              className={`drawer-panel ${activeOverlay ? 'open' : ''} ${activeOverlay === 'milestones-edit' ? 'milestone-edit-drawer' : ''}`}
+              className={`drawer-panel ${activeOverlay ? 'open' : ''} ${activeOverlay === 'progress-update' ? 'progress-update-modal' : ''} ${activeOverlay === 'milestones-edit' ? 'milestone-edit-drawer' : ''}`}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="drawer-header">
@@ -1307,17 +1366,35 @@ export default function OperationalInitiativeDetailPage() {
                       />
                     </label>
 
-                    <div className="detail-block">
-                      <h3>Top 3 Accomplishments This Month</h3>
-                      {progressForm.accomplishments.map((value, index) => (
-                        <label key={`accomplishment-${index}`}>
-                          <textarea
-                            rows={2}
-                            value={value}
-                            onChange={(event) => handleListFieldChange('accomplishments', index, event.target.value)}
-                          />
-                        </label>
-                      ))}
+                    <div className="two-col-row progress-reference-row">
+                      <div className="detail-block progress-reference-block">
+                        <h3>{priorCommitmentsReferenceLabel}</h3>
+                        {priorCommitmentsReference.length ? (
+                          <div className="progress-reference-list" aria-label={priorCommitmentsReferenceLabel}>
+                            {priorCommitmentsReference.map((item, index) => (
+                              <div key={`prior-commitment-${index}`} className="progress-reference-item">
+                                <span className="progress-reference-bullet" aria-hidden="true" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="muted">No commitments from the last reported month.</p>
+                        )}
+                      </div>
+
+                      <div className="detail-block">
+                        <h3>Top 3 Accomplishments This Month</h3>
+                        {progressForm.accomplishments.map((value, index) => (
+                          <label key={`accomplishment-${index}`}>
+                            <textarea
+                              rows={2}
+                              value={value}
+                              onChange={(event) => handleListFieldChange('accomplishments', index, event.target.value)}
+                            />
+                          </label>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="detail-block">

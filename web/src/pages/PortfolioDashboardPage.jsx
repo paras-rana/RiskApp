@@ -236,6 +236,10 @@ function renderPortfolioItemLink(project) {
   );
 }
 
+function getPortfolioItemId(project) {
+  return project.id || '-';
+}
+
 function getHealthTonePriority(tone) {
   if (tone === 'red') return 0;
   if (tone === 'yellow') return 1;
@@ -604,6 +608,7 @@ export default function PortfolioDashboardPage() {
               <table className="simple-table">
                 <thead>
                   <tr>
+                    <th>ID</th>
                     <th>Item</th>
                     <th>Stage</th>
                     <th>Owner</th>
@@ -614,6 +619,7 @@ export default function PortfolioDashboardPage() {
                 <tbody>
                   {selectedSummaryGroup.projects.map((project) => (
                     <tr key={project.id}>
+                      <td>{getPortfolioItemId(project)}</td>
                       <td>
                         {renderPortfolioItemLink(project)}
                       </td>
@@ -625,7 +631,7 @@ export default function PortfolioDashboardPage() {
                   ))}
                   {!selectedSummaryGroup.projects.length ? (
                     <tr>
-                      <td colSpan={5} className="muted">No projects are in this view.</td>
+                      <td colSpan={6} className="muted">No projects are in this view.</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -825,6 +831,7 @@ export default function PortfolioDashboardPage() {
                   <table className="simple-table">
                     <thead>
                       <tr>
+                        <th>ID</th>
                         <th>Item</th>
                         <th>Type</th>
                         <th>Owner</th>
@@ -841,6 +848,7 @@ export default function PortfolioDashboardPage() {
 
                         return (
                           <tr key={project.id}>
+                            <td>{getPortfolioItemId(project)}</td>
                             <td>
                               {renderPortfolioItemLink(project)}
                             </td>
@@ -856,7 +864,7 @@ export default function PortfolioDashboardPage() {
                       })}
                       {!selectedStatusGroup.projects.length ? (
                         <tr>
-                          <td colSpan={8} className="muted">No portfolio items are in this status.</td>
+                          <td colSpan={9} className="muted">No portfolio items are in this status.</td>
                         </tr>
                       ) : null}
                     </tbody>
@@ -876,6 +884,7 @@ export default function PortfolioDashboardPage() {
                   <table className="simple-table">
                     <thead>
                       <tr>
+                        <th>ID</th>
                         <th>Item</th>
                         <th>Stage</th>
                         <th>Owner</th>
@@ -886,6 +895,7 @@ export default function PortfolioDashboardPage() {
                     <tbody>
                       {selectedOwnerStatusGroup.projects.map((project) => (
                         <tr key={project.id}>
+                          <td>{getPortfolioItemId(project)}</td>
                           <td>
                             {renderPortfolioItemLink(project)}
                           </td>
@@ -897,7 +907,7 @@ export default function PortfolioDashboardPage() {
                       ))}
                       {!selectedOwnerStatusGroup.projects.length ? (
                         <tr>
-                          <td colSpan={5} className="muted">No projects are in this owner/status selection.</td>
+                          <td colSpan={6} className="muted">No projects are in this owner/status selection.</td>
                         </tr>
                       ) : null}
                     </tbody>
@@ -917,6 +927,7 @@ export default function PortfolioDashboardPage() {
                   <table className="simple-table">
                     <thead>
                       <tr>
+                        <th>ID</th>
                         <th>Item</th>
                         <th>Owner</th>
                         <th>Type</th>
@@ -927,6 +938,7 @@ export default function PortfolioDashboardPage() {
                     <tbody>
                       {selectedPriorityStatusGroup.projects.map((project) => (
                         <tr key={project.id}>
+                          <td>{getPortfolioItemId(project)}</td>
                           <td>{renderPortfolioItemLink(project)}</td>
                           <td>{project.businessOwner || '-'}</td>
                           <td>{project.currentProjectClassification || '-'}</td>
@@ -936,7 +948,7 @@ export default function PortfolioDashboardPage() {
                       ))}
                       {!selectedPriorityStatusGroup.projects.length ? (
                         <tr>
-                          <td colSpan={5} className="muted">No portfolio items are in this strategic priority selection.</td>
+                          <td colSpan={6} className="muted">No portfolio items are in this strategic priority selection.</td>
                         </tr>
                       ) : null}
                     </tbody>
