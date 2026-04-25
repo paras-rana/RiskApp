@@ -350,104 +350,6 @@ function buildInitiativeCostTracking(relatedProjects) {
   ];
 }
 
-function getTimelineDate(value, fallbackYear) {
-  const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) return parsed;
-
-  const quarterMatch = String(value ?? '').match(/Q([1-4])\s+(\d{4})/i);
-  if (quarterMatch) {
-    const quarter = Number(quarterMatch[1]);
-    const year = Number(quarterMatch[2]);
-    return new Date(Date.UTC(year, (quarter - 1) * 3, 1));
-  }
-
-  return new Date(Date.UTC(Number(fallbackYear) || new Date().getFullYear(), 0, 1));
-}
-
-function drawMilestoneTimeline(slide, pptx, milestones, options) {
-  if (!milestones.length) return;
-
-  const sortedMilestones = milestones
-    .map((milestone) => ({
-      ...milestone,
-      timelineDate: getTimelineDate(milestone.plannedDate, options.fallbackYear),
-    }))
-    .sort((left, right) => left.timelineDate - right.timelineDate);
-
-  const firstDate = sortedMilestones[0].timelineDate;
-  const lastDate = sortedMilestones[sortedMilestones.length - 1].timelineDate;
-  const monthSpan = Math.max(
-    1,
-    ((lastDate.getFullYear() - firstDate.getFullYear()) * 12) + (lastDate.getMonth() - firstDate.getMonth()),
-  );
-  const bandY = options.y + (options.bandOffsetY ?? 0.32);
-  const bandH = options.bandHeight ?? 0.18;
-  const upperTextY = options.y;
-  const lowerTextY = bandY + bandH + (options.lowerTextOffset ?? 0.22);
-  const stemHeight = options.stemHeight ?? 0.2;
-  const textWidth = options.textWidth ?? 1.3;
-  const textHeight = options.textHeight ?? 0.28;
-  const fontSize = options.fontSize ?? 7.5;
-
-  slide.addShape(pptx.ShapeType.roundRect, {
-    x: options.x,
-    y: bandY,
-    w: options.w,
-    h: bandH,
-    rectRadius: 0.04,
-    line: { color: '9DB7E8', pt: 0.5 },
-    fill: { color: 'DCE8FF' },
-  });
-
-  sortedMilestones.forEach((milestone, index) => {
-    const monthOffset = ((milestone.timelineDate.getFullYear() - firstDate.getFullYear()) * 12)
-      + (milestone.timelineDate.getMonth() - firstDate.getMonth());
-    const ratio = monthSpan === 0 ? 0.5 : monthOffset / monthSpan;
-    const centerX = options.x + 0.24 + (ratio * Math.max(options.w - 0.48, 0.6));
-    const isTop = index % 2 === 0;
-    const lineTop = isTop ? bandY - stemHeight : bandY + bandH;
-    const textY = isTop ? upperTextY : lowerTextY;
-
-    slide.addShape(pptx.ShapeType.line, {
-      x: centerX,
-      y: lineTop,
-      w: 0,
-      h: stemHeight,
-      line: { color: '1F2940', pt: 1 },
-    });
-    slide.addShape(pptx.ShapeType.ellipse, {
-      x: centerX - 0.045,
-      y: bandY + (bandH / 2) - 0.045,
-      w: 0.09,
-      h: 0.09,
-      line: { color: '1F2940', pt: 1 },
-      fill: { color: '1F2940' },
-    });
-    slide.addShape(pptx.ShapeType.diamond, {
-      x: centerX - 0.05,
-      y: isTop ? bandY - stemHeight - 0.1 : bandY + bandH + stemHeight,
-      w: 0.1,
-      h: 0.1,
-      line: { color: '1F2940', pt: 1 },
-      fill: { color: '1F2940' },
-    });
-    slide.addText(`${milestone.title}\n${milestone.plannedDate}`, {
-      x: centerX - (textWidth / 2),
-      y: textY,
-      w: textWidth,
-      h: textHeight,
-      fontFace: 'Aptos',
-      fontSize,
-      bold: true,
-      color: '1F2940',
-      align: 'center',
-      valign: 'mid',
-      margin: 0.01,
-      fit: 'shrink',
-    });
-  });
-}
-
 function buildMonthlyUpdates(initiative, relatedProjects, milestones) {
   if (Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length) {
     return [...initiative.monthlyProgressUpdates]
@@ -766,9 +668,6 @@ export default function OperationalInitiativeDetailPage() {
     const priorCommitmentBullets = priorUpdate?.commitments?.length
       ? priorUpdate.commitments.slice(0, 3)
       : ['No commitments were recorded for the prior month.'];
-    const priorCommitmentsLabel = priorUpdate?.month
-      ? `${formatMonthYearLabel(priorUpdate.month)} commitments reported this month`
-      : 'Prior month commitments reported this month';
     const riskLines = sortedInitiativeRisks.length > 0
       ? sortedInitiativeRisks.slice(0, 2).map((risk) => {
         const band = getRiskBand((risk.severity_score ?? 0) * (risk.probability_score ?? 0));
@@ -786,12 +685,6 @@ export default function OperationalInitiativeDetailPage() {
       actualDateLabel: formatSlideDate(milestone.actualDate),
       tone: exportOverallTone,
     }));
-    const statusBadgeColors = {
-      green: { fill: 'E3F9E5', line: '1F9D55', text: '137333' },
-      yellow: { fill: 'FFF7D6', line: 'D4A728', text: '8D6E00' },
-      red: { fill: 'FDE8EC', line: 'C74A5F', text: '8C1D2C' },
-      grey: { fill: 'EFF2F7', line: '9AA5B1', text: '52606D' },
-    };
     const renderBullets = (items) => items.map((item) => ({
       text: item,
       options: { bullet: { indent: 14 } },
@@ -836,58 +729,6 @@ export default function OperationalInitiativeDetailPage() {
         fontSize: 11,
         bold: true,
         color: '163A5F',
-      });
-    };
-    const drawStatusBadge = ({ tone, label, x, y, w = 1.12, h = 0.32, fontSize = 10.5 }) => {
-      const colors = statusBadgeColors[tone] ?? statusBadgeColors.grey;
-      slide.addShape(pptx.ShapeType.roundRect, {
-        x,
-        y,
-        w,
-        h,
-        rectRadius: 0.08,
-        line: { color: colors.line, pt: 1 },
-        fill: { color: colors.fill },
-      });
-      slide.addText(label, {
-        x,
-        y: y + 0.04,
-        w,
-        h: h - 0.04,
-        fontFace: 'Aptos',
-        fontSize,
-        bold: true,
-        color: colors.text,
-        align: 'center',
-        valign: 'mid',
-        margin: 0.01,
-        fit: 'shrink',
-      });
-    };
-    const drawStatusBadgeOnSlide = (targetSlide, { tone, label, x, y, w = 1.12, h = 0.32, fontSize = 10.5 }) => {
-      const colors = statusBadgeColors[tone] ?? statusBadgeColors.grey;
-      targetSlide.addShape(pptx.ShapeType.roundRect, {
-        x,
-        y,
-        w,
-        h,
-        rectRadius: 0.08,
-        line: { color: colors.line, pt: 1 },
-        fill: { color: colors.fill },
-      });
-      targetSlide.addText(label, {
-        x,
-        y: y + 0.04,
-        w,
-        h: h - 0.04,
-        fontFace: 'Aptos',
-        fontSize,
-        bold: true,
-        color: colors.text,
-        align: 'center',
-        valign: 'mid',
-        margin: 0.01,
-        fit: 'shrink',
       });
     };
     const drawStatusDot = ({ tone, x, y, size = 0.14 }) => {

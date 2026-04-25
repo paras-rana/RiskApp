@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState } from 'react';
 import {
   CURRENT_PROJECT_CLASSIFICATION_OPTIONS,
   EXECUTIVE_SPONSOR_OPTIONS,
@@ -933,6 +934,19 @@ function isOperationalProject(project) {
   return project.currentProjectClassification === 'Operational project';
 }
 
+function buildNextNumericId(prefix, existingIds) {
+  const prefixWithDash = `${prefix}-`;
+  const nextNumber = existingIds.reduce((max, value) => {
+    const normalizedValue = String(value ?? '');
+    if (!normalizedValue.startsWith(prefixWithDash)) return max;
+
+    const suffix = Number(normalizedValue.slice(prefixWithDash.length));
+    return Number.isFinite(suffix) ? Math.max(max, suffix) : max;
+  }, 0) + 1;
+
+  return `${prefix}-${nextNumber}`;
+}
+
 function sortPriorityPeriods(periods) {
   return [...periods].sort((left, right) => {
     if (left.status === 'active' && right.status !== 'active') return -1;
@@ -1248,7 +1262,10 @@ export function PpmProjectsProvider({ children }) {
   }
 
   function submitProject(project) {
-    const proposalId = `PRJ-${Math.floor(Date.now() / 1000)}`;
+    const proposalId = buildNextNumericId(
+      'PRJ',
+      projects.map((existingProject) => existingProject.id),
+    );
     const nextProject = {
       ...project,
       proposalId,
@@ -1276,7 +1293,10 @@ export function PpmProjectsProvider({ children }) {
       initiative.strategicPriorityTitle,
     );
     const nextInitiative = {
-      id: `AOI-${Math.floor(Date.now() / 1000)}`,
+      id: buildNextNumericId(
+        'AOI',
+        operationalInitiatives.map((existingInitiative) => existingInitiative.id),
+      ),
       title: initiative.title ?? '',
       year: Number(initiative.year) || new Date().getFullYear(),
       strategicPriorityId: strategicPriority?.id ?? initiative.strategicPriorityId ?? '',
@@ -1633,60 +1653,48 @@ export function PpmProjectsProvider({ children }) {
     );
   }
 
-  const activeStrategicPriorityPeriod = useMemo(
-    () => strategicPriorityPeriods.find((period) => period.status === 'active')
-      ?? strategicPriorityPeriods[0]
-      ?? null,
-    [strategicPriorityPeriods],
-  );
+  const activeStrategicPriorityPeriod = strategicPriorityPeriods.find((period) => period.status === 'active')
+    ?? strategicPriorityPeriods[0]
+    ?? null;
 
-  const projectsWithAlignment = useMemo(
-    () => projects.map((project) => hydrateProjectAlignment(
-      project,
-      operationalInitiatives,
-      strategicPriorityPeriods,
-    )),
-    [projects, operationalInitiatives, strategicPriorityPeriods],
-  );
-  const visibleProjects = useMemo(
-    () => projectsWithAlignment.filter((project) => !isOperationalProject(project)),
-    [projectsWithAlignment],
-  );
+  const projectsWithAlignment = projects.map((project) => hydrateProjectAlignment(
+    project,
+    operationalInitiatives,
+    strategicPriorityPeriods,
+  ));
+  const visibleProjects = projectsWithAlignment.filter((project) => !isOperationalProject(project));
 
-  const value = useMemo(
-    () => ({
-      projects: visibleProjects,
-      getProjectById: (projectId) => visibleProjects.find((project) => project.id === projectId) ?? null,
-      submittedProjects: visibleProjects.filter((project) => project.stage === 'submitted'),
-      futureProjects: visibleProjects.filter(
-        (project) => project.stage === 'future' && project.status !== 'denied',
-      ),
-      archivedProposals: visibleProjects.filter(
-        (project) => project.stage === 'archived' || project.status === 'denied',
-      ),
-      currentProjects: visibleProjects.filter((project) => project.stage === 'current'),
-      strategicPriorityPeriods,
-      activeStrategicPriorityPeriod,
-      strategicPriorities: activeStrategicPriorityPeriod?.priorities ?? [],
-      operationalInitiatives,
-      submitProject,
-      reviewProjectProposal,
-      updateFutureStatus,
-      saveWeeklyUpdate,
-      saveOperationalInitiativeMonthlyUpdate,
-      saveOperationalInitiativeMilestones,
-      saveOperationalInitiativeOwner,
-      saveTeamMembers,
-      saveDocumentVersion,
-      saveProjectMilestones,
-      saveProjectMilestonesBulk,
-      addStrategicPriorityPeriod,
-      addStrategicPriority,
-      addOperationalInitiative,
-      activateStrategicPriorityPeriod,
-    }),
-    [visibleProjects, strategicPriorityPeriods, activeStrategicPriorityPeriod, operationalInitiatives, projects],
-  );
+  const value = {
+    projects: visibleProjects,
+    getProjectById: (projectId) => visibleProjects.find((project) => project.id === projectId) ?? null,
+    submittedProjects: visibleProjects.filter((project) => project.stage === 'submitted'),
+    futureProjects: visibleProjects.filter(
+      (project) => project.stage === 'future' && project.status !== 'denied',
+    ),
+    archivedProposals: visibleProjects.filter(
+      (project) => project.stage === 'archived' || project.status === 'denied',
+    ),
+    currentProjects: visibleProjects.filter((project) => project.stage === 'current'),
+    strategicPriorityPeriods,
+    activeStrategicPriorityPeriod,
+    strategicPriorities: activeStrategicPriorityPeriod?.priorities ?? [],
+    operationalInitiatives,
+    submitProject,
+    reviewProjectProposal,
+    updateFutureStatus,
+    saveWeeklyUpdate,
+    saveOperationalInitiativeMonthlyUpdate,
+    saveOperationalInitiativeMilestones,
+    saveOperationalInitiativeOwner,
+    saveTeamMembers,
+    saveDocumentVersion,
+    saveProjectMilestones,
+    saveProjectMilestonesBulk,
+    addStrategicPriorityPeriod,
+    addStrategicPriority,
+    addOperationalInitiative,
+    activateStrategicPriorityPeriod,
+  };
 
   return (
     <PpmProjectsContext.Provider value={value}>{children}</PpmProjectsContext.Provider>
