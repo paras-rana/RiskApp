@@ -34,7 +34,7 @@ RiskApp is designed to support two related operational workflows in one interfac
 
 The `ERM` workspace is used to manage enterprise risks from initial identification through mitigation and reassessment. Users can create risks, assign owners, maintain mitigation plans, capture inherent and residual assessments, and review aggregated exposure through matrix-style dashboards.
 
-The `PPM` workspace is used to manage the front end of portfolio governance. Users can submit project proposals, review them, move work into future or active states, maintain strategic priority periods, manage annual operational initiatives, track current projects, and view project detail records with supporting artifacts and status updates.
+The `PPM` workspace is used to manage the front end of portfolio governance. Users can submit project proposals, review them, move work into future or active states, maintain strategic priority periods, manage annual operational initiatives, track major projects, and view both project and initiative detail records with supporting artifacts and status updates.
 
 ## Core Functions
 
@@ -51,12 +51,13 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 - Submit new project or initiative proposals
 - Review proposals and approve, deny, hold, or keep work in progress
 - Organize work into submitted, future, current, and archived states
-- Explore the portfolio dashboard through clickable summary cards and delivery-status drilldowns
+- Explore the portfolio dashboard through clickable summary cards, delivery-status drilldowns, and owner or strategic-priority status matrices
 - Track strategic priority periods and related priorities
 - Maintain annual operational initiatives aligned to strategic priorities
-- Align major projects and operational projects through annual operational initiatives
+- Align major projects under annual operational initiatives with rolled-up initiative health, cost, and risk views
 - Maintain project details such as milestones, team members, documents, and weekly updates
-- Export project detail content into PowerPoint-ready output
+- Maintain initiative details such as owners, milestones, monthly progress updates, linked ERM risks, and rolled-up major project context
+- Export both project detail content and initiative monthly updates into PowerPoint-ready output
 
 ## How the Application Works
 
@@ -74,8 +75,9 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 2. Annual operational initiatives are created under a strategic priority for a specific year.
 3. A user submits a project proposal with summary, schedule, staffing, assumptions, risks, documents, and annual operational initiative alignment.
 4. Reviewers evaluate the proposal and move it to current work, future work, archive, or work-in-progress.
-5. The portfolio dashboard summarizes current, future, and submitted work and supports drilldown by project grouping or delivery status.
-6. Approved work is tracked as either a major project or an operational project with milestones, document versions, weekly or monthly updates, and team assignments.
+5. The portfolio dashboard summarizes operational initiatives, major projects, future work, and submitted work, and supports drilldown by status, business owner, and strategic priority.
+6. Approved work is tracked primarily through major projects aligned to annual operational initiatives, with milestone editing, document versions, weekly updates, and team assignments at the project level.
+7. Operational initiative detail pages roll up linked major projects and support initiative-specific owners, milestones, monthly updates, ERM risk views, cost tracking, and slide export.
 
 ## Screens and Routes
 
@@ -91,13 +93,14 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 
 ### PPM
 
-- `/dashboard` - PPM portfolio dashboard with summary-card and status-based project drilldowns when the PPM workspace is active
+- `/dashboard` - PPM portfolio dashboard with summary cards plus status, owner, and strategic-priority drilldowns when the PPM workspace is active
 - `/ppm/submit` - proposal submission form
 - `/ppm/review` - proposal review queue
 - `/ppm/review/:projectId` - review detail page
 - `/ppm/future` - future pipeline and archived views
 - `/ppm/current` - active project tracking
 - `/ppm/projects/:projectId` - project detail view
+- `/ppm/operational-initiatives/:initiativeId` - operational initiative detail view
 - `/ppm/strategic-priorities` - current strategic priorities view
 - `/ppm/strategic-priorities/register` - historical strategic priority period register
 - `/ppm/strategic-priorities/new` - create a new strategic priority period
@@ -121,7 +124,7 @@ ERM pages call the backend API through a small fetch wrapper in `web/src/lib/api
 
 PPM is currently implemented as a frontend-managed module. Its project, strategic-priority, and annual-operational-initiative data are seeded in the browser and persisted in `localStorage` through `PpmProjectsContext`. That means PPM does not currently depend on the NestJS API or PostgreSQL for its main data flow.
 
-The portfolio dashboard itself is interactive: summary cards open filtered project tables for major, operational, future, and submitted work, and the status section groups all projects into red, yellow, and green drilldowns.
+The portfolio dashboard itself is interactive: summary cards open filtered tables for operational initiatives, major projects, future work, and submitted work. It also supports red, yellow, and green status drilldowns plus matrix-based drilldowns by business owner and strategic priority.
 
 ### Backend
 
