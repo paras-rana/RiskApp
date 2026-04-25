@@ -914,10 +914,22 @@ function getProjectCostTracking(project) {
 }
 
 function getMilestoneDetails(project, milestone) {
-  return PROJECT_MILESTONE_DETAILS_BY_ID[project.id]?.[milestone.id] ?? {
-    description: `Deliver ${milestone.name.toLowerCase()} as part of ${project.operationalInitiativeTitle || 'the current initiative'}.`,
-    plannedDate: milestone.quarter || '-',
-    actualDate: '',
+  const seededDetails = PROJECT_MILESTONE_DETAILS_BY_ID[project.id]?.[milestone.id] ?? null;
+  const plannedDate = milestone.quarter || seededDetails?.plannedDate || '-';
+  const originalPlannedDate = milestone.originalQuarter || seededDetails?.plannedDate || milestone.quarter || '';
+
+  return {
+    description:
+      seededDetails?.description
+      ?? `Deliver ${milestone.name.toLowerCase()} as part of ${project.operationalInitiativeTitle || 'the current initiative'}.`,
+    plannedDate,
+    actualDate: milestone.actualDate || seededDetails?.actualDate || '',
+    originalPlannedDate,
+    plannedDateChanged: Boolean(
+      plannedDate
+      && originalPlannedDate
+      && plannedDate !== originalPlannedDate,
+    ),
   };
 }
 
@@ -950,7 +962,13 @@ function downloadProjectDocument(fileName) {
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const { token, logout } = useAuth();
-  const { getProjectById, saveWeeklyUpdate, saveTeamMembers, saveDocumentVersion } = usePpmProjects();
+  const {
+    getProjectById,
+    saveWeeklyUpdate,
+    saveTeamMembers,
+    saveDocumentVersion,
+    saveProjectMilestones,
+  } = usePpmProjects();
   const project = getProjectById(projectId);
   const isOperationalProject = project?.currentProjectClassification === 'Operational project';
   const {
@@ -972,6 +990,7 @@ export default function ProjectDetailPage() {
     fileName: '',
     comments: '',
   });
+  const [milestoneFormRows, setMilestoneFormRows] = useState([]);
   const [projectRisks, setProjectRisks] = useState([]);
   const [projectRisksLoading, setProjectRisksLoading] = useState(true);
   const [projectRisksError, setProjectRisksError] = useState('');
@@ -1055,6 +1074,8 @@ export default function ProjectDetailPage() {
       description: details?.description || `Planned for ${milestone.quarter || 'TBD'}.`,
       plannedDate: details?.plannedDate || milestone.quarter || '-',
       actualDate: details?.actualDate || '-',
+      originalPlannedDate: details?.originalPlannedDate || '',
+      plannedDateChanged: Boolean(details?.plannedDateChanged),
     };
   });
   const costTrackingTotals = costTrackingRows.reduce(
@@ -1100,7 +1121,12 @@ export default function ProjectDetailPage() {
   const projectDocuments = (project.documentVersions ?? [])
     .filter((document) => document.isCurrent)
     .sort((left, right) => left.category.localeCompare(right.category));
-  const overlayTitle = activeOverlay === 'progress-update' ? 'Progress Update' : '';
+  const overlayTitle =
+    activeOverlay === 'progress-update'
+      ? 'Progress Update'
+      : activeOverlay === 'milestones-edit'
+        ? 'Edit Milestones'
+        : '';
   const overlayHeading =
     activeOverlay === 'team-edit'
       ? 'Edit Team Members'
@@ -1117,6 +1143,45 @@ export default function ProjectDetailPage() {
     setActiveOverlay('progress-update');
   }
 
+  function openMilestoneEditor() {
+    setMilestoneFormRows(
+      project.milestones.map((milestone, index) => {
+        const details = getMilestoneDetails(project, milestone);
+        const plannedDate = details?.plannedDate && details.plannedDate !== '-' ? details.plannedDate : '';
+
+        return {
+          id: milestone.id || `MS-${project.id}-${index + 1}`,
+          name: milestone.name || '',
+          description: details?.description || '',
+          quarter: plannedDate,
+          originalQuarter: details?.originalPlannedDate || plannedDate,
+          actualDate: details?.actualDate || '',
+        };
+      }),
+    );
+    setActiveOverlay('milestones-edit');
+  }
+
+  function updateMilestoneFormRow(rowId, field, value) {
+    setMilestoneFormRows((current) => current.map((row) => (
+      row.id === rowId ? { ...row, [field]: value } : row
+    )));
+  }
+
+  function addMilestoneFormRow() {
+    setMilestoneFormRows((current) => [
+      ...current,
+      {
+        id: `MS-${project.id}-${Date.now()}-${current.length + 1}`,
+        name: '',
+        description: '',
+        quarter: '',
+        originalQuarter: '',
+        actualDate: '',
+      },
+    ]);
+  }
+
   const overlay =
     typeof document !== 'undefined'
       ? createPortal(
@@ -1125,7 +1190,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveOverlay(null)}
           >
             <aside
-              className={`drawer-panel ${activeOverlay ? 'open' : ''}`}
+              className={`drawer-panel ${activeOverlay ? 'open' : ''} ${activeOverlay === 'milestones-edit' ? 'milestone-edit-drawer' : ''}`}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="drawer-header">
@@ -1300,6 +1365,89 @@ export default function ProjectDetailPage() {
                   </div>
                 </form>
               ) : null}
+
+              {activeOverlay === 'milestones-edit' ? (
+                <form
+                  className="risk-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitMilestones();
+                  }}
+                >
+                  <div className="detail-actions-row milestone-form-actions">
+                    <p className="muted">
+                      Add milestones, adjust planned dates, and record actual completion dates.
+                    </p>
+                    <button type="button" className="secondary-btn" onClick={addMilestoneFormRow}>
+                      <Icon name="plus" />
+                      Add Milestone
+                    </button>
+                  </div>
+
+                  <div className="form-grid single-column">
+                    {milestoneFormRows.map((milestone) => (
+                      <div key={milestone.id} className="detail-block milestone-editor-card">
+                        {milestone.originalQuarter && milestone.quarter && milestone.quarter !== milestone.originalQuarter ? (
+                          <div className="detail-actions-row">
+                            <span className="pill changed">Planned date changed</span>
+                          </div>
+                        ) : null}
+
+                        <div className="milestone-editor-row">
+                          <label>
+                            Title
+                            <input
+                              value={milestone.name}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'name', event.target.value)}
+                              placeholder="Enter milestone title"
+                            />
+                          </label>
+
+                          <label>
+                            Description
+                            <input
+                              value={milestone.description}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'description', event.target.value)}
+                              placeholder="Enter milestone description"
+                            />
+                          </label>
+
+                          <label>
+                            Planned Date
+                            <input
+                              type="date"
+                              value={milestone.quarter}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'quarter', event.target.value)}
+                            />
+                          </label>
+
+                          <label>
+                            Actual Date
+                            <input
+                              type="date"
+                              value={milestone.actualDate}
+                              onChange={(event) => updateMilestoneFormRow(milestone.id, 'actualDate', event.target.value)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+
+                    {milestoneFormRows.length === 0 ? (
+                      <p className="muted">No milestones defined yet. Add one to get started.</p>
+                    ) : null}
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Save Milestones
+                    </button>
+                  </div>
+                </form>
+              ) : null}
             </aside>
           </div>,
           document.body,
@@ -1369,6 +1517,11 @@ export default function ProjectDetailPage() {
       fileName: documentVersionForm.fileName.trim(),
       comments: documentVersionForm.comments.trim(),
     });
+    setActiveOverlay(null);
+  }
+
+  function submitMilestones() {
+    saveProjectMilestones(project.id, milestoneFormRows);
     setActiveOverlay(null);
   }
 
@@ -1613,7 +1766,7 @@ export default function ProjectDetailPage() {
         {activeTab === 'key-info' ? (
           <>
             <div className="panel-header-row">
-              <h2><Icon name="detail" />Key Information</h2>
+              <div className="muted">Core project details, alignment, ownership, and portfolio context</div>
             </div>
 
             <div className="project-info-card-row">
@@ -1640,7 +1793,6 @@ export default function ProjectDetailPage() {
         {activeTab === 'outcomes' ? (
           <>
             <div className="panel-header-row">
-              <h2><Icon name="assessment" />Expected Outcomes</h2>
               <div className="muted">Expected delivery and business results for this project</div>
             </div>
             <div className="detail-block">
@@ -1660,7 +1812,6 @@ export default function ProjectDetailPage() {
         {activeTab === 'team' ? (
           <>
             <div className="panel-header-row">
-              <h2><Icon name="department" />Team Members</h2>
               <div className="detail-actions-row">
                 <div className="muted">Assigned project participants and delivery contacts</div>
                 <button type="button" className="secondary-btn" onClick={openTeamEditor}>
@@ -1685,7 +1836,6 @@ export default function ProjectDetailPage() {
         {activeTab === 'documents' ? (
           <>
             <div className="panel-header-row">
-              <h2><Icon name="register" />Project Documents</h2>
               <div className="detail-actions-row">
                 <div className="muted">Supporting attachments and scope documentation</div>
                 <button
@@ -1805,7 +1955,12 @@ export default function ProjectDetailPage() {
       <section className="panel">
         <div className="panel-header-row">
           <h2><Icon name="dashboard" />Milestones</h2>
-          <div className="muted">{milestoneRows.length} milestone(s)</div>
+          <div className="detail-actions-row">
+            <div className="muted">{milestoneRows.length} milestone(s)</div>
+            <button type="button" className="secondary-btn" onClick={openMilestoneEditor}>
+              Edit Milestones
+            </button>
+          </div>
         </div>
 
         {milestoneRows.length > 0 ? (
@@ -1824,7 +1979,10 @@ export default function ProjectDetailPage() {
                   <tr key={milestone.id}>
                     <td>{milestone.title}</td>
                     <td>{milestone.description}</td>
-                    <td>{milestone.plannedDate}</td>
+                    <td className={milestone.plannedDateChanged ? 'milestone-date-cell changed' : 'milestone-date-cell'}>
+                      <span>{milestone.plannedDate}</span>
+                      {milestone.plannedDateChanged ? <span className="pill changed">Changed</span> : null}
+                    </td>
                     <td>{milestone.actualDate}</td>
                   </tr>
                 ))}
