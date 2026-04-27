@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import AppFrame from '../components/AppFrame';
 import Icon from '../components/Icon';
@@ -22,10 +23,24 @@ const DEPARTMENT_OPTIONS = [
   'Compliance',
   'Operations',
   'Finance',
+  'PMO',
   'People',
   'Safety',
   'Technology',
   'Facilities',
+];
+
+const CATEGORY_OPTIONS = [
+  'Clinical',
+  'Compliance',
+  'Operations',
+  'Finance',
+  'Workforce',
+  'Safety',
+  'IT',
+  'Facilities',
+  'Initiative',
+  'Major Project',
 ];
 
 const INITIAL_FORM = {
@@ -69,6 +84,7 @@ export default function RiskRegisterPage() {
   const [formError, setFormError] = useState('');
   const [showDrawer, setShowDrawer] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
+  const [drawerInitialForm, setDrawerInitialForm] = useState(INITIAL_FORM);
 
   // Table filtering + paging state.
   const [search, setSearch] = useState('');
@@ -78,6 +94,7 @@ export default function RiskRegisterPage() {
   const [page, setPage] = useState(1);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const loadRisks = useCallback(async () => {
     try {
@@ -99,6 +116,16 @@ export default function RiskRegisterPage() {
   useEffect(() => {
     void loadRisks();
   }, [loadRisks]);
+
+  useEffect(() => {
+    if (!location.state?.openNewRisk) return;
+
+    setDrawerInitialForm(INITIAL_FORM);
+    setForm(INITIAL_FORM);
+    setFormError('');
+    setShowDrawer(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate]);
 
   const categories = useMemo(() => {
     const values = new Set(risks.map((risk) => risk.category).filter(Boolean));
@@ -154,6 +181,190 @@ export default function RiskRegisterPage() {
     return filteredRisks.slice(start, start + PAGE_SIZE);
   }, [filteredRisks, page]);
 
+  const drawer =
+    typeof document !== 'undefined'
+      ? createPortal(
+        <div className={`drawer-overlay ${showDrawer ? 'open' : ''}`} onClick={closeDrawer}>
+          <aside
+            className={`drawer-panel ${showDrawer ? 'open' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="drawer-header">
+              <h2>Add New Risk</h2>
+              <button className="icon-btn" onClick={closeDrawer} aria-label="Close">
+                x
+              </button>
+            </div>
+
+            {formError && <p className="error">{formError}</p>}
+
+            <form className="risk-form" onSubmit={onSubmit}>
+              <div className="form-grid single-column">
+                <label>
+                  Title *
+                  <input name="title" value={form.title} onChange={onFormChange} required />
+                </label>
+
+                <label>
+                  Category *
+                  <select name="category" value={form.category} onChange={onFormChange}>
+                    {CATEGORY_OPTIONS.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Department *
+                  <select name="department" value={form.department} onChange={onFormChange} required>
+                    {DEPARTMENT_OPTIONS.map((department) => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Owner Name
+                  <input name="owner_name" value={form.owner_name} onChange={onFormChange} />
+                </label>
+
+                <label>
+                  Owner Email
+                  <input
+                    name="owner_email"
+                    type="email"
+                    value={form.owner_email}
+                    onChange={onFormChange}
+                  />
+                </label>
+
+                <label>
+                  Site / Program
+                  <input
+                    name="site_or_program"
+                    value={form.site_or_program}
+                    onChange={onFormChange}
+                  />
+                </label>
+
+                <label>
+                  Status
+                  <select name="status" value={form.status} onChange={onFormChange}>
+                    <option>Open</option>
+                    <option>Monitoring</option>
+                    <option>Mitigating</option>
+                    <option>Accepted</option>
+                    <option>Closed</option>
+                  </select>
+                </label>
+
+                <div className="two-col-row">
+                  <label>
+                    Inherent Severity *
+                    <input
+                      name="inherent_severity"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={form.inherent_severity}
+                      onChange={onFormChange}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Inherent Probability *
+                    <input
+                      name="inherent_probability"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={form.inherent_probability}
+                      onChange={onFormChange}
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="two-col-row">
+                  <label>
+                    Residual Severity
+                    <input
+                      name="residual_severity"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={form.residual_severity}
+                      onChange={onFormChange}
+                    />
+                  </label>
+
+                  <label>
+                    Residual Probability
+                    <input
+                      name="residual_probability"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={form.residual_probability}
+                      onChange={onFormChange}
+                    />
+                  </label>
+                </div>
+
+                <label>
+                  Next Review Due
+                  <input
+                    name="next_review_due"
+                    type="date"
+                    value={form.next_review_due}
+                    onChange={onFormChange}
+                  />
+                </label>
+
+                <label>
+                  Description
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={onFormChange}
+                    rows={3}
+                  />
+                </label>
+
+                <label>
+                  Residual Notes
+                  <textarea
+                    name="residual_notes"
+                    value={form.residual_notes}
+                    onChange={onFormChange}
+                    rows={2}
+                  />
+                </label>
+              </div>
+
+              <div className="drawer-actions">
+                <button type="button" className="secondary-btn" onClick={closeDrawer}>
+                  Cancel
+                </button>
+                <button type="button" className="secondary-btn" onClick={() => setForm(drawerInitialForm)}>
+                  Reset
+                </button>
+                <button type="submit" className="primary-btn" disabled={saving}>
+                  {saving ? 'Saving...' : 'Create Risk'}
+                </button>
+              </div>
+            </form>
+          </aside>
+        </div>,
+        document.body,
+      )
+      : null;
+
   function onFormChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -162,6 +373,13 @@ export default function RiskRegisterPage() {
   function closeDrawer() {
     setShowDrawer(false);
     setFormError('');
+  }
+
+  function openNewRiskDrawer() {
+    setDrawerInitialForm(INITIAL_FORM);
+    setForm(INITIAL_FORM);
+    setFormError('');
+    setShowDrawer(true);
   }
 
   async function onSubmit(e) {
@@ -196,6 +414,7 @@ export default function RiskRegisterPage() {
 
       const created = await res.json();
 
+      setDrawerInitialForm(INITIAL_FORM);
       setForm(INITIAL_FORM);
       setShowDrawer(false);
       await loadRisks();
@@ -217,7 +436,7 @@ export default function RiskRegisterPage() {
       <section className="panel">
         <div className="panel-header-row">
           <h2><Icon name="filter" />Filters</h2>
-          <button className="primary-btn" onClick={() => setShowDrawer(true)}>
+          <button className="primary-btn" onClick={openNewRiskDrawer}>
             <Icon name="plus" />
             Add New Risk
           </button>
@@ -390,187 +609,7 @@ export default function RiskRegisterPage() {
         )}
       </section>
 
-      {/* Slide-in drawer for creating a new risk. */}
-      <div className={`drawer-overlay ${showDrawer ? 'open' : ''}`} onClick={closeDrawer}>
-        <aside
-          className={`drawer-panel ${showDrawer ? 'open' : ''}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="drawer-header">
-            <h2>Add New Risk</h2>
-            <button className="icon-btn" onClick={closeDrawer} aria-label="Close">
-              x
-            </button>
-          </div>
-
-          {formError && <p className="error">{formError}</p>}
-
-          <form className="risk-form" onSubmit={onSubmit}>
-            <div className="form-grid single-column">
-              <label>
-                Title *
-                <input name="title" value={form.title} onChange={onFormChange} required />
-              </label>
-
-              <label>
-                Category *
-                <select name="category" value={form.category} onChange={onFormChange}>
-                  <option>Clinical</option>
-                  <option>Compliance</option>
-                  <option>Operations</option>
-                  <option>Finance</option>
-                  <option>Workforce</option>
-                  <option>Safety</option>
-                  <option>IT</option>
-                  <option>Facilities</option>
-                </select>
-              </label>
-
-              <label>
-                Department *
-                <select name="department" value={form.department} onChange={onFormChange} required>
-                  {DEPARTMENT_OPTIONS.map((department) => (
-                    <option key={department} value={department}>
-                      {department}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Owner Name
-                <input name="owner_name" value={form.owner_name} onChange={onFormChange} />
-              </label>
-
-              <label>
-                Owner Email
-                <input
-                  name="owner_email"
-                  type="email"
-                  value={form.owner_email}
-                  onChange={onFormChange}
-                />
-              </label>
-
-              <label>
-                Site / Program
-                <input
-                  name="site_or_program"
-                  value={form.site_or_program}
-                  onChange={onFormChange}
-                />
-              </label>
-
-              <label>
-                Status
-                <select name="status" value={form.status} onChange={onFormChange}>
-                  <option>Open</option>
-                  <option>Monitoring</option>
-                  <option>Mitigating</option>
-                  <option>Accepted</option>
-                  <option>Closed</option>
-                </select>
-              </label>
-
-              <div className="two-col-row">
-                <label>
-                  Inherent Severity *
-                  <input
-                    name="inherent_severity"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={form.inherent_severity}
-                    onChange={onFormChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Inherent Probability *
-                  <input
-                    name="inherent_probability"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={form.inherent_probability}
-                    onChange={onFormChange}
-                    required
-                  />
-                </label>
-              </div>
-
-              <div className="two-col-row">
-                <label>
-                  Residual Severity
-                  <input
-                    name="residual_severity"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={form.residual_severity}
-                    onChange={onFormChange}
-                  />
-                </label>
-
-                <label>
-                  Residual Probability
-                  <input
-                    name="residual_probability"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={form.residual_probability}
-                    onChange={onFormChange}
-                  />
-                </label>
-              </div>
-
-              <label>
-                Next Review Due
-                <input
-                  name="next_review_due"
-                  type="date"
-                  value={form.next_review_due}
-                  onChange={onFormChange}
-                />
-              </label>
-
-              <label>
-                Description
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={onFormChange}
-                  rows={3}
-                />
-              </label>
-
-              <label>
-                Residual Notes
-                <textarea
-                  name="residual_notes"
-                  value={form.residual_notes}
-                  onChange={onFormChange}
-                  rows={2}
-                />
-              </label>
-            </div>
-
-            <div className="drawer-actions">
-              <button type="button" className="secondary-btn" onClick={closeDrawer}>
-                Cancel
-              </button>
-              <button type="button" className="secondary-btn" onClick={() => setForm(INITIAL_FORM)}>
-                Reset
-              </button>
-              <button type="submit" className="primary-btn" disabled={saving}>
-                {saving ? 'Saving...' : 'Create Risk'}
-              </button>
-            </div>
-          </form>
-        </aside>
-      </div>
+      {drawer}
     </AppFrame>
   );
 }

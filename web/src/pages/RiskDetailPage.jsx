@@ -315,6 +315,10 @@ export default function RiskDetailPage() {
     }
   }
 
+  const siteProgramLabel = detail && ['Initiative', 'Major Project'].includes(detail.risk.category)
+    ? 'PMO'
+    : (detail?.risk.site_or_program ?? 'No site/program');
+
   return (
     <AppFrame
       title="Risk Detail"
@@ -338,7 +342,7 @@ export default function RiskDetailPage() {
               </p>
               <p className="muted">
                 {detail.risk.category} - {detail.risk.status} -{' '}
-                {detail.risk.site_or_program ?? 'No site/program'}
+                {siteProgramLabel}
               </p>
             </div>
 

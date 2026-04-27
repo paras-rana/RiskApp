@@ -77,9 +77,7 @@ export default function App() {
           path="/risks"
           element={(
             <RequireAuth>
-              <RequireWorkspace allowed={[WORKSPACES.ERM]}>
-                <RiskRegisterPage />
-              </RequireWorkspace>
+              <RiskRegisterPage />
             </RequireAuth>
           )}
         />
@@ -87,9 +85,7 @@ export default function App() {
           path="/risks/:riskId"
           element={(
             <RequireAuth>
-              <RequireWorkspace allowed={[WORKSPACES.ERM]}>
-                <RiskDetailPage />
-              </RequireWorkspace>
+              <RiskDetailPage />
             </RequireAuth>
           )}
         />

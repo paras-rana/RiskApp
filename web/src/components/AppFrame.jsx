@@ -80,12 +80,6 @@ export default function AppFrame({
     <div className="app-shell">
       <div className="app-layout">
         <aside className="side-nav">
-          <div className="side-nav-brand">
-            <div className="side-nav-logo-placeholder" aria-label="Application logo placeholder">
-              <div className="side-nav-logo-mark" aria-hidden="true" />
-            </div>
-          </div>
-
           <nav className="side-nav-links" aria-label="Primary navigation">
             <NavLink
               end

@@ -5,6 +5,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import AppFrame from '../components/AppFrame';
 import Icon from '../components/Icon';
+import PmoRiskDrawer from '../components/PmoRiskDrawer';
 import { apiFetch } from '../lib/api';
 import { usePpmProjects } from '../ppm/PpmProjectsContext';
 
@@ -163,7 +164,6 @@ function buildInitiativeProgressForm(initiative, initiativeHealth) {
     accomplishments: ['', '', ''],
     commitments: ['', '', ''],
     milestoneChanges: '',
-    newRisks: [''],
     decisionsNeeded: '',
     helpNeeded: '',
     notes: '',
@@ -409,6 +409,94 @@ function buildMonthlyUpdates(initiative, relatedProjects, milestones) {
   ];
 }
 
+function buildInitiativeProgressPresentationData({
+  initiative,
+  selectedUpdate,
+  monthlyUpdates,
+  initiativeHealth,
+  overallTone,
+  owners,
+  sortedInitiativeRisks,
+  milestoneRows,
+}) {
+  const sortedProgressUpdates = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
+    ? [...initiative.monthlyProgressUpdates].sort(
+      (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
+    )
+    : [];
+  const latestSavedUpdate = sortedProgressUpdates[0] ?? null;
+  const exportUpdate = selectedUpdate ?? latestSavedUpdate;
+  const exportUpdateIndex = exportUpdate
+    ? sortedProgressUpdates.findIndex((update) => update.month === exportUpdate.month)
+    : -1;
+  const priorUpdate = exportUpdateIndex >= 0 ? sortedProgressUpdates[exportUpdateIndex + 1] ?? null : sortedProgressUpdates[1] ?? null;
+  const ownersText = owners.length ? owners.join(', ') : '-';
+  const exportOverallTone = exportUpdate?.overallStatus ?? overallTone;
+  const exportHealth = {
+    scope: exportUpdate?.scopeStatus ?? initiativeHealth.scope,
+    schedule: exportUpdate?.scheduleStatus ?? initiativeHealth.schedule,
+    cost: exportUpdate?.costStatus ?? initiativeHealth.cost,
+    risk: exportUpdate?.riskStatus ?? initiativeHealth.risk,
+    quality: exportUpdate?.qualityStatus ?? initiativeHealth.quality,
+  };
+  const statusDimensions = [
+    { label: 'Scope', tone: exportHealth.scope },
+    { label: 'Schedule', tone: exportHealth.schedule },
+    { label: 'Cost', tone: exportHealth.cost },
+    { label: 'Risk', tone: exportHealth.risk },
+    { label: 'Quality', tone: exportHealth.quality },
+  ];
+  const progressPeriodLabel = exportUpdate?.month
+    ? formatMonthYearLabel(exportUpdate.month)
+    : (monthlyUpdates[0]?.monthLabel || 'Current Month');
+  const overallStatusSummary = exportUpdate?.statusExplanation
+    || monthlyUpdates[0]?.progress
+    || 'No monthly status summary has been recorded yet.';
+  const progressBullets = exportUpdate?.accomplishments?.length
+    ? exportUpdate.accomplishments.slice(0, 4)
+    : (monthlyUpdates[0]?.progress ? [monthlyUpdates[0].progress] : ['No progress updates recorded this month.']);
+  const commitmentBullets = exportUpdate?.commitments?.length
+    ? exportUpdate.commitments.slice(0, 3)
+    : (monthlyUpdates[0]?.plan ? [monthlyUpdates[0].plan] : ['No commitments recorded for next month.']);
+  const priorCommitmentBullets = priorUpdate?.commitments?.length
+    ? priorUpdate.commitments.slice(0, 3)
+    : ['No commitments were recorded for the prior month.'];
+  const riskLines = sortedInitiativeRisks.length > 0
+    ? sortedInitiativeRisks.slice(0, 2).map((risk) => {
+      const band = getRiskBand((risk.severity_score ?? 0) * (risk.probability_score ?? 0));
+      const mitigation = risk.latest_mitigation || risk.response_plan || risk.mitigation_plan;
+      const bandLabel = band === 'high' ? 'High' : band === 'medium' ? 'Moderate' : 'Low';
+      return `${risk.risk_id}: ${risk.title} (${bandLabel}). ${mitigation || 'Mitigation plan to be confirmed.'}`;
+    })
+    : ['None.'];
+  const decisionsNeededText = exportUpdate?.decisionsNeeded || 'None.';
+  const helpNeededText = exportUpdate?.helpNeeded || 'None.';
+  const additionalNotesText = exportUpdate?.notes || exportUpdate?.helpNeeded || 'None.';
+  const milestonePreviewRows = milestoneRows.slice(0, 4).map((milestone) => ({
+    ...milestone,
+    plannedDateLabel: formatSlideDate(milestone.plannedDate),
+    actualDateLabel: formatSlideDate(milestone.actualDate),
+    tone: exportOverallTone,
+  }));
+
+  return {
+    exportUpdate,
+    exportOverallTone,
+    ownersText,
+    statusDimensions,
+    progressPeriodLabel,
+    overallStatusSummary,
+    progressBullets,
+    commitmentBullets,
+    priorCommitmentBullets,
+    riskLines,
+    decisionsNeededText,
+    helpNeededText,
+    additionalNotesText,
+    milestonePreviewRows,
+  };
+}
+
 export default function OperationalInitiativeDetailPage() {
   const { initiativeId } = useParams();
   const { token, logout } = useAuth();
@@ -424,6 +512,8 @@ export default function OperationalInitiativeDetailPage() {
   const [initiativeRisksLoading, setInitiativeRisksLoading] = useState(true);
   const [initiativeRisksError, setInitiativeRisksError] = useState('');
   const [activeOverlay, setActiveOverlay] = useState(null);
+  const [showRiskDrawer, setShowRiskDrawer] = useState(false);
+  const [selectedProgressUpdate, setSelectedProgressUpdate] = useState(null);
   const [milestoneFormRows, setMilestoneFormRows] = useState([]);
   const [ownerFormText, setOwnerFormText] = useState('');
   const initiative = operationalInitiatives.find((item) => item.id === initiativeId) ?? null;
@@ -456,9 +546,9 @@ export default function OperationalInitiativeDetailPage() {
           throw new Error(`HTTP ${response.status}`);
         }
         const risks = await response.json();
-        const projectIds = new Set(relatedProjects.map((project) => project.id));
+        const linkedRiskTargets = new Set([initiative.id, ...relatedProjects.map((project) => project.id)]);
         setInitiativeRisks(
-          risks.filter((risk) => projectIds.has(risk.site_or_program)),
+          risks.filter((risk) => linkedRiskTargets.has(risk.site_or_program)),
         );
       } catch (error) {
         setInitiativeRisksError(`Failed to load initiative risks: ${getErrorMessage(error)}`);
@@ -516,6 +606,19 @@ export default function OperationalInitiativeDetailPage() {
   const sortedInitiativeRisks = [...initiativeRisks].sort(
     (left, right) => String(left.risk_id).localeCompare(String(right.risk_id)),
   );
+  const nextProgressMonth = latestMonthlyProgressUpdate?.month
+    ? getNextMonthValue(latestMonthlyProgressUpdate.month)
+    : new Date().toISOString().slice(0, 7);
+  const progressPresentation = buildInitiativeProgressPresentationData({
+    initiative,
+    selectedUpdate: selectedProgressUpdate,
+    monthlyUpdates,
+    initiativeHealth,
+    overallTone,
+    owners,
+    sortedInitiativeRisks,
+    milestoneRows,
+  });
   const [progressForm, setProgressForm] = useState(() => buildInitiativeProgressForm(
     initiativeForForm,
     initiativeHealth,
@@ -526,8 +629,17 @@ export default function OperationalInitiativeDetailPage() {
   }
 
   function openProgressUpdate() {
-    setProgressForm(buildInitiativeProgressForm(initiative, initiativeHealth));
+    setSelectedProgressUpdate(null);
+    setProgressForm({
+      ...buildInitiativeProgressForm(initiative, initiativeHealth),
+      month: nextProgressMonth,
+    });
     setActiveOverlay('progress-update');
+  }
+
+  function openProgressView(update) {
+    setSelectedProgressUpdate(update ?? null);
+    setActiveOverlay('progress-view');
   }
 
   function openOwnerEditor() {
@@ -547,6 +659,13 @@ export default function OperationalInitiativeDetailPage() {
       })),
     );
     setActiveOverlay('milestones-edit');
+  }
+
+  function handleRiskCreated(createdRisk) {
+    setInitiativeRisks((current) => {
+      const next = current.filter((risk) => risk.risk_id !== createdRisk.risk_id);
+      return [...next, createdRisk];
+    });
   }
 
   function updateMilestoneFormRow(rowId, field, value) {
@@ -576,13 +695,6 @@ export default function OperationalInitiativeDetailPage() {
     }));
   }
 
-  function addRiskField() {
-    setProgressForm((current) => ({
-      ...current,
-      newRisks: [...current.newRisks, ''],
-    }));
-  }
-
   function submitProgressUpdate() {
     saveOperationalInitiativeMonthlyUpdate(initiative.id, {
       month: progressForm.month,
@@ -596,7 +708,6 @@ export default function OperationalInitiativeDetailPage() {
       accomplishments: progressForm.accomplishments.map((value) => value.trim()).filter(Boolean).slice(0, 3),
       commitments: progressForm.commitments.map((value) => value.trim()).filter(Boolean).slice(0, 3),
       milestoneChanges: progressForm.milestoneChanges.trim(),
-      newRisks: progressForm.newRisks.map((value) => value.trim()).filter(Boolean),
       decisionsNeeded: progressForm.decisionsNeeded.trim(),
       helpNeeded: progressForm.helpNeeded.trim(),
       notes: progressForm.notes.trim(),
@@ -621,70 +732,35 @@ export default function OperationalInitiativeDetailPage() {
     pptx.company = 'Risk App';
     pptx.subject = `${initiative.id} initiative summary`;
     pptx.title = `${initiative.id} | ${initiative.title}`;
-
-    const sortedProgressUpdates = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
-      ? [...initiative.monthlyProgressUpdates].sort(
-        (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
-      )
-      : [];
-    const latestSavedUpdate = sortedProgressUpdates[0] ?? null;
-    const exportUpdate = selectedUpdate ?? latestSavedUpdate;
-    const exportUpdateIndex = exportUpdate
-      ? sortedProgressUpdates.findIndex((update) => update.month === exportUpdate.month)
-      : -1;
-    const priorUpdate = exportUpdateIndex >= 0 ? sortedProgressUpdates[exportUpdateIndex + 1] ?? null : sortedProgressUpdates[1] ?? null;
     const slide = pptx.addSlide();
     const commitmentsSlide = pptx.addSlide();
     const panelFill = 'FFFFFF';
     const panelBorder = 'D9E2EC';
-    const ownersText = owners.length ? owners.join(', ') : '-';
-    const exportOverallTone = exportUpdate?.overallStatus ?? overallTone;
-    const exportHealth = {
-      scope: exportUpdate?.scopeStatus ?? initiativeHealth.scope,
-      schedule: exportUpdate?.scheduleStatus ?? initiativeHealth.schedule,
-      cost: exportUpdate?.costStatus ?? initiativeHealth.cost,
-      risk: exportUpdate?.riskStatus ?? initiativeHealth.risk,
-      quality: exportUpdate?.qualityStatus ?? initiativeHealth.quality,
-    };
-    const statusDimensions = [
-      { label: 'Scope', tone: exportHealth.scope },
-      { label: 'Schedule', tone: exportHealth.schedule },
-      { label: 'Cost', tone: exportHealth.cost },
-      { label: 'Risk', tone: exportHealth.risk },
-      { label: 'Quality', tone: exportHealth.quality },
-    ];
-    const progressPeriodLabel = exportUpdate?.month
-      ? formatMonthYearLabel(exportUpdate.month)
-      : (monthlyUpdates[0]?.monthLabel || 'Current Month');
-    const overallStatusSummary = exportUpdate?.statusExplanation
-      || monthlyUpdates[0]?.progress
-      || 'No monthly status summary has been recorded yet.';
-    const progressBullets = exportUpdate?.accomplishments?.length
-      ? exportUpdate.accomplishments.slice(0, 4)
-      : (monthlyUpdates[0]?.progress ? [monthlyUpdates[0].progress] : ['No progress updates recorded this month.']);
-    const commitmentBullets = exportUpdate?.commitments?.length
-      ? exportUpdate.commitments.slice(0, 3)
-      : (monthlyUpdates[0]?.plan ? [monthlyUpdates[0].plan] : ['No commitments recorded for next month.']);
-    const priorCommitmentBullets = priorUpdate?.commitments?.length
-      ? priorUpdate.commitments.slice(0, 3)
-      : ['No commitments were recorded for the prior month.'];
-    const riskLines = sortedInitiativeRisks.length > 0
-      ? sortedInitiativeRisks.slice(0, 2).map((risk) => {
-        const band = getRiskBand((risk.severity_score ?? 0) * (risk.probability_score ?? 0));
-        const mitigation = risk.latest_mitigation || risk.response_plan || risk.mitigation_plan;
-        const bandLabel = band === 'high' ? 'High' : band === 'medium' ? 'Moderate' : 'Low';
-        return `${risk.risk_id}: ${risk.title} (${bandLabel}). ${mitigation || 'Mitigation plan to be confirmed.'}`;
-      })
-      : (exportUpdate?.newRisks?.length ? exportUpdate.newRisks.slice(0, 2) : ['None.']);
-    const decisionsNeededText = exportUpdate?.decisionsNeeded || 'None.';
-    const helpNeededText = exportUpdate?.helpNeeded || 'None.';
-    const additionalNotesText = exportUpdate?.notes || exportUpdate?.helpNeeded || 'None.';
-    const milestonePreviewRows = milestoneRows.slice(0, 4).map((milestone) => ({
-      ...milestone,
-      plannedDateLabel: formatSlideDate(milestone.plannedDate),
-      actualDateLabel: formatSlideDate(milestone.actualDate),
-      tone: exportOverallTone,
-    }));
+    const {
+      exportUpdate,
+      exportOverallTone,
+      ownersText,
+      statusDimensions,
+      progressPeriodLabel,
+      overallStatusSummary,
+      progressBullets,
+      commitmentBullets,
+      priorCommitmentBullets,
+      riskLines,
+      decisionsNeededText,
+      helpNeededText,
+      additionalNotesText,
+      milestonePreviewRows,
+    } = buildInitiativeProgressPresentationData({
+      initiative,
+      selectedUpdate,
+      monthlyUpdates,
+      initiativeHealth,
+      overallTone,
+      owners,
+      sortedInitiativeRisks,
+      milestoneRows,
+    });
     const renderBullets = (items) => items.map((item) => ({
       text: item,
       options: { bullet: { indent: 14 } },
@@ -1060,11 +1136,11 @@ export default function OperationalInitiativeDetailPage() {
     typeof document !== 'undefined'
         ? createPortal(
           <div
-            className={`drawer-overlay ${activeOverlay ? 'open' : ''} ${activeOverlay === 'progress-update' ? 'modal-overlay' : ''}`}
+            className={`drawer-overlay ${activeOverlay ? 'open' : ''} ${(activeOverlay === 'progress-update' || activeOverlay === 'progress-view') ? 'modal-overlay' : ''}`}
             onClick={() => setActiveOverlay(null)}
           >
             <aside
-              className={`drawer-panel ${activeOverlay ? 'open' : ''} ${activeOverlay === 'progress-update' ? 'progress-update-modal' : ''} ${activeOverlay === 'milestones-edit' ? 'milestone-edit-drawer' : ''}`}
+              className={`drawer-panel ${activeOverlay ? 'open' : ''} ${(activeOverlay === 'progress-update' || activeOverlay === 'progress-view') ? 'progress-update-modal' : ''} ${activeOverlay === 'milestones-edit' ? 'milestone-edit-drawer' : ''}`}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="drawer-header">
@@ -1073,7 +1149,9 @@ export default function OperationalInitiativeDetailPage() {
                     ? 'Edit Milestones'
                     : activeOverlay === 'owner-edit'
                       ? 'Edit Owner'
-                      : 'Progress Update'}
+                      : activeOverlay === 'progress-view'
+                        ? `Progress Update | ${progressPresentation.progressPeriodLabel}`
+                        : 'Progress Update'}
                 </h2>
                 <button type="button" className="icon-btn" onClick={() => setActiveOverlay(null)}>
                   x
@@ -1094,12 +1172,12 @@ export default function OperationalInitiativeDetailPage() {
                       <input
                         type="month"
                         value={progressForm.month}
-                        onChange={(event) => setProgressForm((current) => ({
-                          ...current,
-                          month: event.target.value,
-                        }))}
+                        readOnly
                       />
                     </label>
+                    <p className="muted">
+                      Progress updates are limited to one entry per month. The next available month is selected automatically.
+                    </p>
 
                     <label className="ppm-status-featured-field">
                       Overall Project Status
@@ -1263,22 +1341,6 @@ export default function OperationalInitiativeDetailPage() {
                       />
                     </label>
 
-                    <div className="detail-block">
-                      <div className="panel-header-row">
-                        <h3>New Risks</h3>
-                        <button type="button" className="secondary-btn" onClick={addRiskField}>Add New Risk</button>
-                      </div>
-                      {progressForm.newRisks.map((value, index) => (
-                        <label key={`risk-${index}`}>
-                          <textarea
-                            rows={2}
-                            value={value}
-                            onChange={(event) => handleListFieldChange('newRisks', index, event.target.value)}
-                          />
-                        </label>
-                      ))}
-                    </div>
-
                     <label>
                       Decisions Needed
                       <textarea
@@ -1325,6 +1387,189 @@ export default function OperationalInitiativeDetailPage() {
                     </button>
                   </div>
                 </form>
+              ) : null}
+
+              {activeOverlay === 'progress-view' ? (
+                <div className="risk-form progress-view-sheet">
+                  <div className="form-grid single-column progress-view-grid">
+                    <section className="detail-block progress-view-hero">
+                      <div className="progress-view-hero-row">
+                        <div className="progress-view-title-block">
+                          <div className="progress-view-kicker">Monthly Progress Update</div>
+                          <div className="progress-view-title-row">
+                            <span
+                              className={`status-indicator-dot ${progressPresentation.exportOverallTone} progress-view-title-dot`}
+                              aria-hidden="true"
+                            />
+                            <div>
+                              <h3>{initiative.title}</h3>
+                              <div className="progress-view-title-meta">
+                                <span>{initiative.id}</span>
+                                <span className="progress-view-title-divider">|</span>
+                                <span className="status-indicator-cell">
+                                  <span className={`status-indicator-dot ${progressPresentation.exportOverallTone}`} aria-hidden="true" />
+                                  <span>{getHealthLabel(progressPresentation.exportOverallTone)}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="progress-view-meta">
+                          <div className="progress-view-meta-item">
+                            <span className="progress-view-meta-label">Reporting Period</span>
+                            <span className="progress-view-meta-value">{progressPresentation.progressPeriodLabel}</span>
+                          </div>
+                          <div className="progress-view-meta-item">
+                            <span className="progress-view-meta-label">Owner</span>
+                            <span className="progress-view-meta-value">{progressPresentation.ownersText}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="progress-status-row">
+                        {progressPresentation.statusDimensions.map((dimension) => (
+                          <div key={dimension.label} className="ppm-status-featured-field progress-status-card">
+                            <span className="project-health-header">
+                              <span className={`status-indicator-dot ${dimension.tone}`} aria-hidden="true" />
+                              <span>{dimension.label}</span>
+                            </span>
+                            <div className={`project-health-value tone-${dimension.tone}`}>
+                              {getHealthLabel(dimension.tone)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="progress-view-summary">
+                        <div className="progress-view-section-label">Summary</div>
+                        <p className="ppm-field-note">{progressPresentation.overallStatusSummary}</p>
+                      </div>
+                    </section>
+
+                    <div className="two-col-row progress-reference-row progress-view-pair">
+                      <section className="detail-block progress-reference-block progress-view-card">
+                        <div className="progress-view-section-label">Reference</div>
+                        <h3>Commitments Made Last Month</h3>
+                        <div className="progress-reference-list">
+                          {progressPresentation.priorCommitmentBullets.map((item, index) => (
+                            <div key={`prior-progress-${index}`} className="progress-reference-item">
+                              <span className="progress-reference-bullet" aria-hidden="true" />
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="detail-block progress-view-card">
+                        <div className="progress-view-section-label">Delivery</div>
+                        <h3>Progress This Month</h3>
+                        <div className="progress-reference-list">
+                          {progressPresentation.progressBullets.map((item, index) => (
+                            <div key={`progress-${index}`} className="progress-reference-item">
+                              <span className="progress-reference-bullet" aria-hidden="true" />
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+
+                    <div className="two-col-row progress-reference-row progress-view-pair">
+                      <section className="detail-block progress-view-card">
+                        <div className="progress-view-section-label">Risk</div>
+                        <h3>Risks</h3>
+                        <div className="progress-reference-list">
+                          {progressPresentation.riskLines.map((item, index) => (
+                            <div key={`risk-line-${index}`} className="progress-reference-item">
+                              <span className="progress-reference-bullet" aria-hidden="true" />
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="detail-block progress-view-card">
+                        <div className="progress-view-section-label">Forward Look</div>
+                        <h3>Next Month&apos;s Commitments</h3>
+                        <div className="progress-reference-list">
+                          {progressPresentation.commitmentBullets.map((item, index) => (
+                            <div key={`commitment-line-${index}`} className="progress-reference-item">
+                              <span className="progress-reference-bullet" aria-hidden="true" />
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+
+                    <section className="detail-block progress-view-card">
+                      <div className="progress-view-section-label">Milestones</div>
+                      <h3>Milestone Snapshot</h3>
+                      <div className="table-wrap progress-view-table-wrap">
+                        <table className="simple-table">
+                          <thead>
+                            <tr>
+                              <th aria-label="Status" />
+                              <th>Milestone</th>
+                              <th>Due</th>
+                              <th>Actual</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {progressPresentation.milestonePreviewRows.map((milestone) => (
+                              <tr key={milestone.id}>
+                                <td className="progress-view-milestone-status-cell">
+                                  <span
+                                    className={`status-indicator-dot ${milestone.tone} progress-view-milestone-dot`}
+                                    aria-label={`${getHealthLabel(milestone.tone)} status`}
+                                  />
+                                </td>
+                                <td>{milestone.title}</td>
+                                <td>{milestone.plannedDateLabel}</td>
+                                <td>{milestone.actualDateLabel}</td>
+                              </tr>
+                            ))}
+                            {progressPresentation.milestonePreviewRows.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="muted">No milestone snapshot is available.</td>
+                              </tr>
+                            ) : null}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+
+                    <div className="two-col-row progress-reference-row progress-view-pair">
+                      <section className="detail-block progress-view-card">
+                        <div className="progress-view-section-label">Decision</div>
+                        <h3>Decisions Needed</h3>
+                        <p className="ppm-field-note">{progressPresentation.decisionsNeededText}</p>
+                      </section>
+                      <section className="detail-block progress-view-card">
+                        <div className="progress-view-section-label">Support</div>
+                        <h3>Help Needed</h3>
+                        <p className="ppm-field-note">{progressPresentation.helpNeededText}</p>
+                      </section>
+                    </div>
+
+                    <section className="detail-block progress-view-card">
+                      <div className="progress-view-section-label">Notes</div>
+                      <h3>Additional Notes</h3>
+                      <p className="ppm-field-note">{progressPresentation.additionalNotesText}</p>
+                    </section>
+                  </div>
+
+                  <div className="drawer-actions">
+                    <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      onClick={() => void exportInitiativeSlide(progressPresentation.exportUpdate ?? null)}
+                    >
+                      Export Slide
+                    </button>
+                  </div>
+                </div>
               ) : null}
 
               {activeOverlay === 'milestones-edit' ? (
@@ -1534,37 +1779,18 @@ export default function OperationalInitiativeDetailPage() {
 
         {activeTab === 'key-info' ? (
           <>
-            <div className="panel-header-row">
-              <div className="muted">Core initiative details, alignment, ownership, and rolled-up budget</div>
-            </div>
             <div className="project-info-card-row">
               <article className="card project-info-card">
                 <div className="label">Initiative Overview</div>
                 <div className="value">{initiative.description || '-'}</div>
               </article>
               <article className="card project-info-card">
-                <div className="label">Owner</div>
-                <div className="value">{owners.length ? owners.join(', ') : '-'}</div>
-              </article>
-              <article className="card project-info-card">
                 <div className="label">Strategic Priority</div>
                 <div className="value">{initiative.strategicPriorityTitle || '-'}</div>
               </article>
               <article className="card project-info-card">
-                <div className="label">Priority Period</div>
-                <div className="value">{initiative.strategicPriorityPeriodLabel || '-'}</div>
-              </article>
-              <article className="card project-info-card">
-                <div className="label">Year</div>
-                <div className="value">{initiative.year || '-'}</div>
-              </article>
-              <article className="card project-info-card">
                 <div className="label">Rolled-Up Budget</div>
                 <div className="value">{formatMillions(costTrackingTotals.budget)}</div>
-              </article>
-              <article className="card project-info-card">
-                <div className="label">Linked Major Projects</div>
-                <div className="value">{relatedProjects.length}</div>
               </article>
             </div>
           </>
@@ -1572,9 +1798,6 @@ export default function OperationalInitiativeDetailPage() {
 
         {activeTab === 'outcomes' ? (
           <>
-            <div className="panel-header-row">
-              <div className="muted">Expected delivery and business results for this initiative</div>
-            </div>
             <div className="detail-block">
               <ul className="ppm-inline-list">
                 {initiativeOutcomes.map((outcome) => (
@@ -1587,9 +1810,6 @@ export default function OperationalInitiativeDetailPage() {
 
         {activeTab === 'team' ? (
           <>
-            <div className="panel-header-row">
-              <div className="muted">Initiative participants and major project contacts</div>
-            </div>
             <div className="detail-block">
               <ul className="ppm-inline-list">
                 {initiativeTeam.map((member) => (
@@ -1602,9 +1822,6 @@ export default function OperationalInitiativeDetailPage() {
 
         {activeTab === 'documents' ? (
           <>
-            <div className="panel-header-row">
-              <div className="muted">Initiative and linked major-project documentation</div>
-            </div>
             <div className="table-wrap">
               <table className="simple-table">
                 <thead>
@@ -1636,7 +1853,6 @@ export default function OperationalInitiativeDetailPage() {
       <section className="panel">
         <div className="panel-header-row">
           <h2><Icon name="review" />Monthly Updates</h2>
-          <div className="muted">Monthly planning and execution snapshot for the initiative</div>
           <button type="button" className="secondary-btn" onClick={openProgressUpdate}>
             Progress Update
           </button>
@@ -1651,7 +1867,7 @@ export default function OperationalInitiativeDetailPage() {
                 <th>Progress</th>
                 <th>Overall Status</th>
                 <th>Source</th>
-                <th>Export</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1663,13 +1879,30 @@ export default function OperationalInitiativeDetailPage() {
                   <td>{update.overallStatus || 'Overall status has not been recorded yet.'}</td>
                   <td>{update.sourceProjectName || '-'}</td>
                   <td>
-                    <button
-                      type="button"
-                      className="primary-btn primary-btn-compact"
-                      onClick={() => void exportInitiativeSlide(update.sourceUpdate ?? null)}
-                    >
-                      Export Slide
-                    </button>
+                    <div className="detail-actions-row">
+                      <button
+                        type="button"
+                        className="secondary-btn primary-btn-compact"
+                        onClick={() => openProgressView(update.sourceUpdate ?? {
+                          month: String(update.weekStart ?? '').slice(0, 7),
+                          statusExplanation: update.progress,
+                          accomplishments: update.progress ? [update.progress] : [],
+                          commitments: update.plan ? [update.plan] : [],
+                          overallStatus: ['green', 'yellow', 'red'].includes(String(update.overallStatus ?? '').toLowerCase())
+                            ? String(update.overallStatus).toLowerCase()
+                            : overallTone,
+                        })}
+                      >
+                        View Progress Update
+                      </button>
+                      <button
+                        type="button"
+                        className="primary-btn primary-btn-compact"
+                        onClick={() => void exportInitiativeSlide(update.sourceUpdate ?? null)}
+                      >
+                        Export Slide
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1720,7 +1953,16 @@ export default function OperationalInitiativeDetailPage() {
       <section className="panel">
         <div className="panel-header-row">
           <h2><Icon name="risk" />ERM Risks</h2>
-          <div className="muted">{sortedInitiativeRisks.length} linked risk(s)</div>
+          <div className="detail-actions-row">
+            <div className="muted">{sortedInitiativeRisks.length} linked risk(s)</div>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => setShowRiskDrawer(true)}
+            >
+              Add New Risk
+            </button>
+          </div>
         </div>
 
         {initiativeRisksLoading ? <p>Loading initiative risks...</p> : null}
@@ -1772,6 +2014,16 @@ export default function OperationalInitiativeDetailPage() {
           </div>
         ) : null}
       </section>
+      <PmoRiskDrawer
+        isOpen={showRiskDrawer}
+        onClose={() => setShowRiskDrawer(false)}
+        onCreated={handleRiskCreated}
+        category="Initiative"
+        ownerName={owners.length ? owners.join(', ') : ''}
+        ownerEmail=""
+        linkId={initiative.id}
+        contextLabel="initiative"
+      />
 
       <section className="panel">
         <div className="panel-header-row">

@@ -1323,12 +1323,13 @@ export function PpmProjectsProvider({ children }) {
         const existingUpdates = Array.isArray(initiative.monthlyProgressUpdates)
           ? initiative.monthlyProgressUpdates
           : [];
+        const nextMonth = monthlyUpdate.month ?? new Date().toISOString().slice(0, 7);
         const nextUpdate = normalizeOperationalInitiative({
           ...initiative,
           monthlyProgressUpdates: [
             {
               id: monthlyUpdate.id ?? `AOI-UPD-${Date.now()}`,
-              month: monthlyUpdate.month ?? new Date().toISOString().slice(0, 7),
+              month: nextMonth,
               createdAt: monthlyUpdate.createdAt ?? new Date().toISOString(),
               scopeStatus: monthlyUpdate.scopeStatus ?? 'green',
               scheduleStatus: monthlyUpdate.scheduleStatus ?? 'green',
@@ -1350,7 +1351,10 @@ export function PpmProjectsProvider({ children }) {
 
         return {
           ...initiative,
-          monthlyProgressUpdates: [nextUpdate, ...existingUpdates].sort(
+          monthlyProgressUpdates: [
+            nextUpdate,
+            ...existingUpdates.filter((update) => String(update.month ?? '') !== String(nextMonth)),
+          ].sort(
             (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
           ),
         };

@@ -561,16 +561,10 @@ export default function PortfolioDashboardPage() {
       title="Portfolio Dashboard"
       description="PPM workflow across proposal intake, review, future pipeline, and active projects."
       topNavActions={(
-        <>
-          <Link className="secondary-btn" to="/ppm/register">
-            <Icon name="register" />
-            Portfolio Register
-          </Link>
-          <Link className="primary-btn" to="/ppm/submit">
-            <Icon name="plus" />
-            Submit Project
-          </Link>
-        </>
+        <Link className="primary-btn" to="/ppm/submit">
+          <Icon name="plus" />
+          Submit Project
+        </Link>
       )}
     >
       <section className="panel">

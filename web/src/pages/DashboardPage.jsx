@@ -350,7 +350,11 @@ export default function DashboardPage() {
       title="Risk Dashboard"
       description="Matrix distribution view with clickable cells and category risk-band summary."
       topNavActions={(
-        <button type="button" className="primary-btn" onClick={() => navigate('/risks')}>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={() => navigate('/risks', { state: { openNewRisk: true } })}
+        >
           <Icon name="plus" />
           Add New Risk
         </button>

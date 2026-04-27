@@ -5,6 +5,7 @@ import pptxgen from 'pptxgenjs';
 import { useAuth } from '../auth/useAuth';
 import AppFrame from '../components/AppFrame';
 import Icon from '../components/Icon';
+import PmoRiskDrawer from '../components/PmoRiskDrawer';
 import { apiFetch } from '../lib/api';
 import { usePpmProjects } from '../ppm/PpmProjectsContext';
 
@@ -994,6 +995,7 @@ export default function ProjectDetailPage() {
   const [projectRisks, setProjectRisks] = useState([]);
   const [projectRisksLoading, setProjectRisksLoading] = useState(true);
   const [projectRisksError, setProjectRisksError] = useState('');
+  const [showRiskDrawer, setShowRiskDrawer] = useState(false);
 
   const sortedProjectRisks = useMemo(
     () => [...projectRisks].sort((left, right) => String(left.risk_id).localeCompare(String(right.risk_id))),
@@ -1031,6 +1033,13 @@ export default function ProjectDetailPage() {
 
     void loadProjectRisks();
   }, [project?.id, token, logout]);
+
+  function handleRiskCreated(createdRisk) {
+    setProjectRisks((current) => {
+      const next = current.filter((risk) => risk.risk_id !== createdRisk.risk_id);
+      return [...next, createdRisk];
+    });
+  }
 
   if (!projectId) {
     return <Navigate to="/ppm/current" replace />;
@@ -1997,7 +2006,16 @@ export default function ProjectDetailPage() {
       <section className="panel">
         <div className="panel-header-row">
           <h2><Icon name="risk" />ERM Risks</h2>
-          <div className="muted">{sortedProjectRisks.length} linked risk(s)</div>
+          <div className="detail-actions-row">
+            <div className="muted">{sortedProjectRisks.length} linked risk(s)</div>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => setShowRiskDrawer(true)}
+            >
+              Add New Risk
+            </button>
+          </div>
         </div>
 
         {projectRisksLoading ? <p>Loading project risks...</p> : null}
@@ -2049,6 +2067,16 @@ export default function ProjectDetailPage() {
           </div>
         ) : null}
       </section>
+      <PmoRiskDrawer
+        isOpen={showRiskDrawer}
+        onClose={() => setShowRiskDrawer(false)}
+        onCreated={handleRiskCreated}
+        category="Major Project"
+        ownerName={project.businessOwner || ''}
+        ownerEmail=""
+        linkId={project.id}
+        contextLabel="major project"
+      />
 
       <section className="panel">
         <div className="panel-header-row">
