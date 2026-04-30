@@ -81,6 +81,8 @@ The `PPM` workspace is used to manage the front end of portfolio governance. Use
 
 ## Screens and Routes
 
+Detailed page-by-page documentation is available in [docs/page-reference.md](docs/page-reference.md).
+
 ### Shared
 
 - `/login` - sign-in page
