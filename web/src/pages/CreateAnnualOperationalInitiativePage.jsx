@@ -13,6 +13,18 @@ function createInitialForm(activePeriod) {
   };
 }
 
+function buildInitiativeYearOptions(activePeriod) {
+  const currentYear = new Date().getFullYear();
+  const startYear = Number(activePeriod?.startYear) || currentYear;
+  const endYear = Number(activePeriod?.endYear) || startYear;
+  const normalizedEndYear = endYear >= startYear ? endYear : startYear;
+
+  return Array.from(
+    { length: normalizedEndYear - startYear + 1 },
+    (_, index) => String(startYear + index),
+  );
+}
+
 export default function CreateAnnualOperationalInitiativePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,6 +34,7 @@ export default function CreateAnnualOperationalInitiativePage() {
     addOperationalInitiative,
   } = usePpmProjects();
   const [form, setForm] = useState(() => createInitialForm(activeStrategicPriorityPeriod));
+  const initiativeYearOptions = buildInitiativeYearOptions(activeStrategicPriorityPeriod);
 
   if (!location.state?.fromOperationalInitiatives) {
     return <Navigate to="/ppm/operational-initiatives" replace />;
@@ -49,9 +62,8 @@ export default function CreateAnnualOperationalInitiativePage() {
 
   return (
     <AppFrame
-      title="Add Annual Operational Initiative"
+      title="New Operational Initiative"
       description="Create an annual operational initiative by selecting the strategic priority it should roll up to."
-      detailLabel="Add Annual Operational Initiative"
       topNavActions={(
         <Link className="secondary-btn" to="/ppm/operational-initiatives">
           Back To Annual Operational Initiatives
@@ -60,7 +72,7 @@ export default function CreateAnnualOperationalInitiativePage() {
     >
       <section className="panel">
         <div className="panel-header-row">
-          <h2><Icon name="plus" />New Annual Operational Initiative</h2>
+          <h2><Icon name="plus" />Initiative Details</h2>
           <div className="muted">
             Annual operational initiatives sit between strategic priorities and project delivery work.
           </div>
@@ -69,7 +81,7 @@ export default function CreateAnnualOperationalInitiativePage() {
         <form className="risk-form ppm-form" onSubmit={onSubmit}>
           <div className="inline-form-grid">
             <label className="full-width">
-              Initiative Title
+              <span className="field-label">Initiative Title <span className="required-marker" aria-hidden="true">*</span></span>
               <input
                 name="title"
                 value={form.title}
@@ -80,19 +92,21 @@ export default function CreateAnnualOperationalInitiativePage() {
             </label>
 
             <label>
-              Initiative Year
-              <input
-                type="number"
-                min="2000"
+              <span className="field-label">Initiative Year <span className="required-marker" aria-hidden="true">*</span></span>
+              <select
                 name="year"
                 value={form.year}
                 onChange={onChange}
                 required
-              />
+              >
+                {initiativeYearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </label>
 
             <label>
-              Strategic Priority
+              <span className="field-label">Strategic Priority <span className="required-marker" aria-hidden="true">*</span></span>
               <select
                 name="strategicPriorityId"
                 value={form.strategicPriorityId}
@@ -108,7 +122,7 @@ export default function CreateAnnualOperationalInitiativePage() {
             </label>
 
             <label className="full-width">
-              Description
+              <span className="field-label">Description <span className="required-marker" aria-hidden="true">*</span></span>
               <textarea
                 name="description"
                 rows={4}

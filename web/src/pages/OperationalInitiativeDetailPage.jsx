@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import pptxgen from 'pptxgenjs';
 import { Link, Navigate, useParams } from 'react-router-dom';
@@ -497,6 +497,42 @@ function buildInitiativeProgressPresentationData({
   };
 }
 
+function buildProgressFormFromUpdate(update, initiativeHealth) {
+  const accomplishments = Array.from({ length: 3 }, (_, index) => update?.accomplishments?.[index] ?? '');
+  const commitments = Array.from({ length: 3 }, (_, index) => update?.commitments?.[index] ?? '');
+
+  return {
+    id: update?.id,
+    createdAt: update?.createdAt,
+    month: update?.month ?? new Date().toISOString().slice(0, 7),
+    scopeStatus: update?.scopeStatus ?? initiativeHealth.scope,
+    scheduleStatus: update?.scheduleStatus ?? initiativeHealth.schedule,
+    costStatus: update?.costStatus ?? initiativeHealth.cost,
+    riskStatus: update?.riskStatus ?? initiativeHealth.risk,
+    qualityStatus: update?.qualityStatus ?? initiativeHealth.quality,
+    overallStatus: update?.overallStatus ?? getOverallHealthTone(initiativeHealth),
+    statusExplanation: update?.statusExplanation ?? '',
+    accomplishments,
+    commitments,
+    milestoneChanges: update?.milestoneChanges ?? '',
+    decisionsNeeded: update?.decisionsNeeded ?? '',
+    helpNeeded: update?.helpNeeded ?? '',
+    notes: update?.notes ?? '',
+  };
+}
+
+function buildRowProgressActionTarget(update, overallTone) {
+  return update.sourceUpdate ?? {
+    month: String(update.weekStart ?? '').slice(0, 7),
+    statusExplanation: update.progress,
+    accomplishments: update.progress ? [update.progress] : [],
+    commitments: update.plan ? [update.plan] : [],
+    overallStatus: ['green', 'yellow', 'red'].includes(String(update.overallStatus ?? '').toLowerCase())
+      ? String(update.overallStatus).toLowerCase()
+      : overallTone,
+  };
+}
+
 export default function OperationalInitiativeDetailPage() {
   const { initiativeId } = useParams();
   const { token, logout } = useAuth();
@@ -516,6 +552,8 @@ export default function OperationalInitiativeDetailPage() {
   const [selectedProgressUpdate, setSelectedProgressUpdate] = useState(null);
   const [milestoneFormRows, setMilestoneFormRows] = useState([]);
   const [ownerFormText, setOwnerFormText] = useState('');
+  const [openProgressActionsRow, setOpenProgressActionsRow] = useState(null);
+  const progressActionsMenuRef = useRef(null);
   const initiative = operationalInitiatives.find((item) => item.id === initiativeId) ?? null;
 
   const relatedProjects = useMemo(
@@ -583,17 +621,12 @@ export default function OperationalInitiativeDetailPage() {
   const initiativeDocuments = buildInitiativeDocuments(initiative, relatedProjects);
   const milestoneRows = buildInitiativeMilestones(initiative);
   const monthlyUpdates = buildMonthlyUpdates(initiative, relatedProjects, milestoneRows);
-  const latestMonthlyProgressUpdate = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
+  const sortedMonthlyProgressUpdates = Array.isArray(initiative.monthlyProgressUpdates) && initiative.monthlyProgressUpdates.length
     ? [...initiative.monthlyProgressUpdates].sort(
       (left, right) => String(right.month ?? '').localeCompare(String(left.month ?? '')),
-    )[0]
-    : null;
-  const priorCommitmentsReference = latestMonthlyProgressUpdate?.commitments?.length
-    ? latestMonthlyProgressUpdate.commitments.slice(0, 3)
+    )
     : [];
-  const priorCommitmentsReferenceLabel = latestMonthlyProgressUpdate?.month
-    ? `Commitments From ${formatMonthYearLabel(latestMonthlyProgressUpdate.month)}`
-    : 'Commitments From Last Month';
+  const latestMonthlyProgressUpdate = sortedMonthlyProgressUpdates[0] ?? null;
   const costTrackingRows = buildInitiativeCostTracking(relatedProjects);
   const costTrackingTotals = costTrackingRows.reduce(
     (totals, row) => ({
@@ -623,12 +656,37 @@ export default function OperationalInitiativeDetailPage() {
     initiativeForForm,
     initiativeHealth,
   ));
+  const priorCommitmentsReferenceUpdate = progressForm?.month
+    ? sortedMonthlyProgressUpdates.find((update) => String(update.month ?? '') < String(progressForm.month))
+    : latestMonthlyProgressUpdate;
+  const priorCommitmentsReference = priorCommitmentsReferenceUpdate?.commitments?.length
+    ? priorCommitmentsReferenceUpdate.commitments.slice(0, 3)
+    : [];
+  const priorCommitmentsReferenceLabel = priorCommitmentsReferenceUpdate?.month
+    ? `Commitments From ${formatMonthYearLabel(priorCommitmentsReferenceUpdate.month)}`
+    : 'Commitments From Last Month';
+
+  useEffect(() => {
+    if (!openProgressActionsRow) return undefined;
+
+    function handlePointerDown(event) {
+      if (!progressActionsMenuRef.current?.contains(event.target)) {
+        setOpenProgressActionsRow(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [openProgressActionsRow]);
 
   if (!initiative) {
     return <Navigate to="/ppm/operational-initiatives" replace />;
   }
 
   function openProgressUpdate() {
+    setOpenProgressActionsRow(null);
     setSelectedProgressUpdate(null);
     setProgressForm({
       ...buildInitiativeProgressForm(initiative, initiativeHealth),
@@ -637,9 +695,23 @@ export default function OperationalInitiativeDetailPage() {
     setActiveOverlay('progress-update');
   }
 
+  function openProgressEditor(update) {
+    if (!update) return;
+
+    setOpenProgressActionsRow(null);
+    setSelectedProgressUpdate(update);
+    setProgressForm(buildProgressFormFromUpdate(update, initiativeHealth));
+    setActiveOverlay('progress-update');
+  }
+
   function openProgressView(update) {
+    setOpenProgressActionsRow(null);
     setSelectedProgressUpdate(update ?? null);
     setActiveOverlay('progress-view');
+  }
+
+  function toggleProgressActionsRow(rowKey) {
+    setOpenProgressActionsRow((current) => (current === rowKey ? null : rowKey));
   }
 
   function openOwnerEditor() {
@@ -697,6 +769,8 @@ export default function OperationalInitiativeDetailPage() {
 
   function submitProgressUpdate() {
     saveOperationalInitiativeMonthlyUpdate(initiative.id, {
+      id: progressForm.id,
+      createdAt: progressForm.createdAt,
       month: progressForm.month,
       scopeStatus: progressForm.scopeStatus,
       scheduleStatus: progressForm.scheduleStatus,
@@ -1151,7 +1225,9 @@ export default function OperationalInitiativeDetailPage() {
                       ? 'Edit Owner'
                       : activeOverlay === 'progress-view'
                         ? `Progress Update | ${progressPresentation.progressPeriodLabel}`
-                        : 'Progress Update'}
+                        : selectedProgressUpdate?.month
+                          ? `Edit Progress Update | ${formatMonthYearLabel(selectedProgressUpdate.month)}`
+                          : 'Progress Update'}
                 </h2>
                 <button type="button" className="icon-btn" onClick={() => setActiveOverlay(null)}>
                   x
@@ -1176,7 +1252,9 @@ export default function OperationalInitiativeDetailPage() {
                       />
                     </label>
                     <p className="muted">
-                      Progress updates are limited to one entry per month. The next available month is selected automatically.
+                      {selectedProgressUpdate?.month
+                        ? 'You are editing a saved monthly update. Save again to keep working on the same reporting month.'
+                        : 'Progress updates are limited to one entry per month. The next available month is selected automatically.'}
                     </p>
 
                     <label className="ppm-status-featured-field">
@@ -1383,7 +1461,7 @@ export default function OperationalInitiativeDetailPage() {
                       Cancel
                     </button>
                     <button type="submit" className="primary-btn">
-                      Save Update
+                      {selectedProgressUpdate?.month ? 'Save Changes' : 'Save Update'}
                     </button>
                   </div>
                 </form>
@@ -1561,6 +1639,15 @@ export default function OperationalInitiativeDetailPage() {
                     <button type="button" className="secondary-btn" onClick={() => setActiveOverlay(null)}>
                       Close
                     </button>
+                    {progressPresentation.exportUpdate?.id ? (
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => openProgressEditor(progressPresentation.exportUpdate)}
+                      >
+                        Edit Update
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="primary-btn"
@@ -1866,7 +1953,6 @@ export default function OperationalInitiativeDetailPage() {
                 <th>Plan</th>
                 <th>Progress</th>
                 <th>Overall Status</th>
-                <th>Source</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -1877,32 +1963,63 @@ export default function OperationalInitiativeDetailPage() {
                   <td>{update.plan || 'No monthly plan defined yet.'}</td>
                   <td>{update.progress || 'Monthly progress has not been recorded yet.'}</td>
                   <td>{update.overallStatus || 'Overall status has not been recorded yet.'}</td>
-                  <td>{update.sourceProjectName || '-'}</td>
                   <td>
-                    <div className="detail-actions-row">
-                      <button
-                        type="button"
-                        className="secondary-btn primary-btn-compact"
-                        onClick={() => openProgressView(update.sourceUpdate ?? {
-                          month: String(update.weekStart ?? '').slice(0, 7),
-                          statusExplanation: update.progress,
-                          accomplishments: update.progress ? [update.progress] : [],
-                          commitments: update.plan ? [update.plan] : [],
-                          overallStatus: ['green', 'yellow', 'red'].includes(String(update.overallStatus ?? '').toLowerCase())
-                            ? String(update.overallStatus).toLowerCase()
-                            : overallTone,
-                        })}
-                      >
-                        View Progress Update
-                      </button>
-                      <button
-                        type="button"
-                        className="primary-btn primary-btn-compact"
-                        onClick={() => void exportInitiativeSlide(update.sourceUpdate ?? null)}
-                      >
-                        Export Slide
-                      </button>
-                    </div>
+                    {(() => {
+                      const rowKey = `${update.weekStart}-${update.sourceProjectName}`;
+                      const actionTarget = buildRowProgressActionTarget(update, overallTone);
+                      const isMenuOpen = openProgressActionsRow === rowKey;
+
+                      return (
+                        <div
+                          className="progress-row-actions-menu"
+                          ref={isMenuOpen ? progressActionsMenuRef : null}
+                        >
+                          <button
+                            type="button"
+                            className="secondary-btn primary-btn-compact progress-row-actions-trigger"
+                            onClick={() => toggleProgressActionsRow(rowKey)}
+                            aria-haspopup="menu"
+                            aria-expanded={isMenuOpen}
+                          >
+                            Actions
+                            <Icon name="chevronDown" className={isMenuOpen ? 'progress-row-actions-chevron open' : 'progress-row-actions-chevron'} />
+                          </button>
+                          {isMenuOpen ? (
+                            <div className="progress-row-actions-dropdown" role="menu" aria-label="Progress update actions">
+                              <button
+                                type="button"
+                                className="progress-row-actions-item"
+                                role="menuitem"
+                                onClick={() => openProgressView(actionTarget)}
+                              >
+                                View
+                              </button>
+                              {update.sourceUpdate?.id ? (
+                                <button
+                                  type="button"
+                                  className="progress-row-actions-item"
+                                  role="menuitem"
+                                  onClick={() => openProgressEditor(update.sourceUpdate)}
+                                >
+                                  Edit
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="progress-row-actions-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenProgressActionsRow(null);
+                                  void exportInitiativeSlide(update.sourceUpdate ?? null);
+                                }}
+                              >
+                                Export
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}

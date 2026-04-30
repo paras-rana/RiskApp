@@ -130,7 +130,7 @@ export default function PmoRiskDrawer({
             </p>
 
             <label>
-              Title *
+              <span className="field-label">Title <span className="required-marker" aria-hidden="true">*</span></span>
               <input name="title" value={form.title} onChange={onFormChange} required />
             </label>
 
@@ -175,7 +175,7 @@ export default function PmoRiskDrawer({
 
             <div className="two-col-row">
               <label>
-                Inherent Severity *
+                <span className="field-label">Inherent Severity <span className="required-marker" aria-hidden="true">*</span></span>
                 <input
                   name="inherent_severity"
                   type="number"
@@ -188,7 +188,7 @@ export default function PmoRiskDrawer({
               </label>
 
               <label>
-                Inherent Probability *
+                <span className="field-label">Inherent Probability <span className="required-marker" aria-hidden="true">*</span></span>
                 <input
                   name="inherent_probability"
                   type="number"

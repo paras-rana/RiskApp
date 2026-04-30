@@ -201,12 +201,12 @@ export default function RiskRegisterPage() {
             <form className="risk-form" onSubmit={onSubmit}>
               <div className="form-grid single-column">
                 <label>
-                  Title *
+                  <span className="field-label">Title <span className="required-marker" aria-hidden="true">*</span></span>
                   <input name="title" value={form.title} onChange={onFormChange} required />
                 </label>
 
                 <label>
-                  Category *
+                  <span className="field-label">Category <span className="required-marker" aria-hidden="true">*</span></span>
                   <select name="category" value={form.category} onChange={onFormChange}>
                     {CATEGORY_OPTIONS.map((category) => (
                       <option key={category} value={category}>
@@ -217,7 +217,7 @@ export default function RiskRegisterPage() {
                 </label>
 
                 <label>
-                  Department *
+                  <span className="field-label">Department <span className="required-marker" aria-hidden="true">*</span></span>
                   <select name="department" value={form.department} onChange={onFormChange} required>
                     {DEPARTMENT_OPTIONS.map((department) => (
                       <option key={department} value={department}>
@@ -264,7 +264,7 @@ export default function RiskRegisterPage() {
 
                 <div className="two-col-row">
                   <label>
-                    Inherent Severity *
+                    <span className="field-label">Inherent Severity <span className="required-marker" aria-hidden="true">*</span></span>
                     <input
                       name="inherent_severity"
                       type="number"
@@ -277,7 +277,7 @@ export default function RiskRegisterPage() {
                   </label>
 
                   <label>
-                    Inherent Probability *
+                    <span className="field-label">Inherent Probability <span className="required-marker" aria-hidden="true">*</span></span>
                     <input
                       name="inherent_probability"
                       type="number"

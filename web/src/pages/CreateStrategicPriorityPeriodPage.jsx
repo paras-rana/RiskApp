@@ -78,14 +78,14 @@ export default function CreateStrategicPriorityPeriodPage() {
           title: priority.title.trim(),
           description: priority.description.trim(),
         }))
-        .filter((priority) => priority.title && priority.description),
+        .filter((priority) => priority.title),
     });
 
     navigate('/ppm/strategic-priorities', { replace: true });
   }
 
   const canCreatePeriod = draftPriorities.every(
-    (priority) => priority.title.trim() && priority.description.trim(),
+    (priority) => priority.title.trim(),
   ) && Number(periodForm.endYear) >= Number(periodForm.startYear);
 
   return (
@@ -110,7 +110,7 @@ export default function CreateStrategicPriorityPeriodPage() {
         <form className="risk-form ppm-form" onSubmit={onCreatePeriod}>
           <div className="inline-form-grid">
             <label>
-              Approved On
+              <span className="field-label">Approved On <span className="required-marker" aria-hidden="true">*</span></span>
               <input
                 type="date"
                 name="approvedOn"
@@ -121,7 +121,7 @@ export default function CreateStrategicPriorityPeriodPage() {
             </label>
 
             <label>
-              Start Year
+              <span className="field-label">Start Year <span className="required-marker" aria-hidden="true">*</span></span>
               <input
                 type="number"
                 min="2000"
@@ -133,7 +133,7 @@ export default function CreateStrategicPriorityPeriodPage() {
             </label>
 
             <label>
-              End Year
+              <span className="field-label">End Year <span className="required-marker" aria-hidden="true">*</span></span>
               <input
                 type="number"
                 min={periodForm.startYear || '2000'}
@@ -170,7 +170,7 @@ export default function CreateStrategicPriorityPeriodPage() {
 
                 <div className="inline-form-grid">
                   <label>
-                    Priority Title
+                    <span className="field-label">Priority Title <span className="required-marker" aria-hidden="true">*</span></span>
                     <input
                       value={priority.title}
                       onChange={(event) => updateDraftPriority(priority.id, 'title', event.target.value)}
@@ -185,7 +185,6 @@ export default function CreateStrategicPriorityPeriodPage() {
                       value={priority.description}
                       onChange={(event) => updateDraftPriority(priority.id, 'description', event.target.value)}
                       placeholder="Describe the intent, expected outcomes, and how project proposals should align."
-                      required
                     />
                   </label>
                 </div>

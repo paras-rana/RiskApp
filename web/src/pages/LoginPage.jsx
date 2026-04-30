@@ -89,7 +89,7 @@ export default function LoginPage() {
           </fieldset>
 
           <label>
-            Email
+            <span className="field-label">Email <span className="required-marker" aria-hidden="true">*</span></span>
             <input
               type="email"
               value={email}
@@ -100,7 +100,7 @@ export default function LoginPage() {
           </label>
 
           <label>
-            Password
+            <span className="field-label">Password <span className="required-marker" aria-hidden="true">*</span></span>
             <input
               type="password"
               value={password}

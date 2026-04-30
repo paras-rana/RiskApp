@@ -1229,7 +1229,7 @@ export default function ProjectDetailPage() {
                   <div className="form-grid single-column">
                     {isOperationalProject ? (
                       <label>
-                        Brief Explanation of the Overall Status of the Project
+                        <span className="field-label">Brief Explanation of the Overall Status of the Project <span className="required-marker" aria-hidden="true">*</span></span>
                         <textarea
                           rows={4}
                           value={progressForm.overallStatus}
@@ -1338,7 +1338,7 @@ export default function ProjectDetailPage() {
                     </label>
 
                     <label>
-                      File Name
+                      <span className="field-label">File Name <span className="required-marker" aria-hidden="true">*</span></span>
                       <input
                         value={documentVersionForm.fileName}
                         onChange={(event) => setDocumentVersionForm((current) => ({

@@ -75,14 +75,23 @@ export default function StrategicPrioritiesPage() {
         </div>
 
         {selectedPeriod?.priorities.length ? (
-          <div className="ppm-card-list">
-            {selectedPeriod.priorities.map((priority) => (
-              <article key={priority.id} className="detail-block ppm-project-card">
-                <div className="label">{priority.id}</div>
-                <h3>{priority.title}</h3>
-                <p className="risk-description">{priority.description}</p>
-              </article>
-            ))}
+          <div className="table-wrap">
+            <table className="simple-table strategic-priorities-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedPeriod.priorities.map((priority) => (
+                  <tr key={priority.id}>
+                    <td>{priority.id}</td>
+                    <td>{priority.title}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="muted">No priorities have been defined for this period yet.</p>

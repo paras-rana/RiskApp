@@ -515,7 +515,7 @@ export default function RiskDetailPage() {
               <form className="risk-form" onSubmit={submitMitigation}>
                 <div className="inline-form-grid">
                   <label>
-                    Title *
+                    <span className="field-label">Title <span className="required-marker" aria-hidden="true">*</span></span>
                     <input
                       name="title"
                       value={mitigationForm.title}
@@ -737,7 +737,7 @@ export default function RiskDetailPage() {
                   </label>
 
                   <label>
-                    Severity (1-5)
+                    <span className="field-label">Severity (1-5) <span className="required-marker" aria-hidden="true">*</span></span>
                     <input
                       name="severity"
                       type="number"
@@ -750,7 +750,7 @@ export default function RiskDetailPage() {
                   </label>
 
                   <label>
-                    Probability (1-5)
+                    <span className="field-label">Probability (1-5) <span className="required-marker" aria-hidden="true">*</span></span>
                     <input
                       name="probability"
                       type="number"

@@ -163,12 +163,12 @@ export default function SubmitProjectPage() {
 
             <div className="inline-form-grid">
               <label className="full-width">
-                Project Title
+                <span className="field-label">Project Title <span className="required-marker" aria-hidden="true">*</span></span>
                 <input name="name" value={form.name} onChange={onChange} required />
               </label>
 
               <label className="full-width">
-                Project Purpose
+                <span className="field-label">Project Purpose <span className="required-marker" aria-hidden="true">*</span></span>
                 <textarea
                   name="projectPurpose"
                   rows={4}
@@ -202,7 +202,7 @@ export default function SubmitProjectPage() {
               </label>
 
               <label className="full-width">
-                Expected Outcomes / Benefits
+                <span className="field-label">Expected Outcomes / Benefits <span className="required-marker" aria-hidden="true">*</span></span>
                 <textarea
                   name="expectedOutcomesText"
                   rows={4}
@@ -233,12 +233,12 @@ export default function SubmitProjectPage() {
               </label>
 
               <label>
-                Business Owner
+                <span className="field-label">Business Owner <span className="required-marker" aria-hidden="true">*</span></span>
                 <input name="businessOwner" value={form.businessOwner} onChange={onChange} required />
               </label>
 
               <label className="full-width">
-                Team Members
+                <span className="field-label">Team Members <span className="required-marker" aria-hidden="true">*</span></span>
                 <textarea
                   name="teamMembersText"
                   rows={4}
@@ -250,7 +250,7 @@ export default function SubmitProjectPage() {
               </label>
 
               <label>
-                Estimated Cost
+                <span className="field-label">Estimated Cost <span className="required-marker" aria-hidden="true">*</span></span>
                 <input
                   name="estimatedCost"
                   value={form.estimatedCost}
@@ -282,7 +282,7 @@ export default function SubmitProjectPage() {
 
             <div className="inline-form-grid">
               <label>
-                Expected Start Month
+                <span className="field-label">Expected Start Month <span className="required-marker" aria-hidden="true">*</span></span>
                 <input
                   type="month"
                   name="expectedStartMonth"
@@ -293,7 +293,7 @@ export default function SubmitProjectPage() {
               </label>
 
               <label>
-                Duration in Months
+                <span className="field-label">Duration in Months <span className="required-marker" aria-hidden="true">*</span></span>
                 <input
                   type="number"
                   min="1"
@@ -353,7 +353,7 @@ export default function SubmitProjectPage() {
 
                       <div className="inline-form-grid">
                         <label>
-                          Milestone Name
+                          <span className="field-label">Milestone Name {index === 0 ? <span className="required-marker" aria-hidden="true">*</span> : null}</span>
                           <input
                             value={milestone.name}
                             onChange={(event) => updateMilestone(milestone.id, 'name', event.target.value)}
@@ -363,7 +363,7 @@ export default function SubmitProjectPage() {
                         </label>
 
                         <label>
-                          Target Month
+                          <span className="field-label">Target Month {index === 0 ? <span className="required-marker" aria-hidden="true">*</span> : null}</span>
                           <input
                             type="month"
                             value={milestone.quarter}
@@ -397,7 +397,7 @@ export default function SubmitProjectPage() {
               </label>
 
               <label>
-                Annual Operational Initiative
+                <span className="field-label">Annual Operational Initiative <span className="required-marker" aria-hidden="true">*</span></span>
                 <select
                   name="operationalInitiativeId"
                   value={form.operationalInitiativeId}
