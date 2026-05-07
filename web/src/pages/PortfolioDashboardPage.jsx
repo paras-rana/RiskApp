@@ -340,6 +340,7 @@ export default function PortfolioDashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [selectedSummaryCard, setSelectedSummaryCard] = useState(null);
   const [selectedOwnerStatusCell, setSelectedOwnerStatusCell] = useState(null);
+  const [selectedOwnerRow, setSelectedOwnerRow] = useState(null);
   const [selectedPriorityStatusCell, setSelectedPriorityStatusCell] = useState(null);
   const [selectedVisualType, setSelectedVisualType] = useState('initiatives');
   const majorProjects = useMemo(
@@ -508,6 +509,21 @@ export default function PortfolioDashboardPage() {
     [portfolioSummary, selectedSummaryCard],
   );
   const selectedOwnerStatusGroup = useMemo(() => {
+    if (selectedOwnerRow) {
+      const ownerRow = businessOwnerStatusMatrix.find((row) => row.owner === selectedOwnerRow);
+      if (!ownerRow) return null;
+
+      const matchingProjects = sortProjectsForDashboard(ownerRow.projects);
+
+      return {
+        owner: ownerRow.owner,
+        statusKey: null,
+        label: selectedVisualType === 'major-projects' ? 'All Projects' : 'All Initiatives',
+        count: matchingProjects.length,
+        projects: matchingProjects,
+      };
+    }
+
     if (!selectedOwnerStatusCell) return null;
 
     const ownerRow = businessOwnerStatusMatrix.find((row) => row.owner === selectedOwnerStatusCell.owner);
@@ -529,7 +545,7 @@ export default function PortfolioDashboardPage() {
       count: matchingProjects.length,
       projects: matchingProjects,
     };
-  }, [businessOwnerStatusMatrix, selectedOwnerStatusCell]);
+  }, [businessOwnerStatusMatrix, selectedOwnerRow, selectedOwnerStatusCell, selectedVisualType]);
   const selectedPriorityStatusGroup = useMemo(() => {
     if (!selectedPriorityStatusCell) return null;
 
@@ -555,6 +571,12 @@ export default function PortfolioDashboardPage() {
       projects: matchingProjects,
     };
   }, [selectedPriorityStatusCell, strategicPriorityStatusMatrix]);
+  const ownerMatrixTitle = selectedVisualType === 'major-projects'
+    ? 'Project Status by Business Owner'
+    : 'Operational Initiative Status by Business Owner';
+  const ownerMatrixSubtitle = selectedVisualType === 'major-projects'
+    ? 'Click any count to view the related projects'
+    : 'Click any count to view the related initiatives';
 
   return (
     <AppFrame
@@ -633,7 +655,7 @@ export default function PortfolioDashboardPage() {
         ) : null}
       </section>
 
-      <section className="panel band-blue">
+      <section className="panel band-blue portfolio-dashboard-visuals-panel">
         <div className="panel-header-row">
           <h2><Icon name="assessment" />Portfolio Items By Status</h2>
           <div className="portfolio-visual-selector" role="tablist" aria-label="Dashboard visual type">
@@ -646,6 +668,7 @@ export default function PortfolioDashboardPage() {
                 setSelectedVisualType('initiatives');
                 setSelectedStatus(null);
                 setSelectedOwnerStatusCell(null);
+                setSelectedOwnerRow(null);
                 setSelectedPriorityStatusCell(null);
               }}
             >
@@ -660,6 +683,7 @@ export default function PortfolioDashboardPage() {
                 setSelectedVisualType('major-projects');
                 setSelectedStatus(null);
                 setSelectedOwnerStatusCell(null);
+                setSelectedOwnerRow(null);
                 setSelectedPriorityStatusCell(null);
               }}
             >
@@ -669,40 +693,58 @@ export default function PortfolioDashboardPage() {
         </div>
 
         <div className="portfolio-dashboard-visual-grid">
-          <div className="portfolio-dashboard-visual-card visual-band-status">
-            <div className="panel-header-row">
+          <div className="portfolio-dashboard-visual-card portfolio-status-overview visual-band-status">
+            <div className="portfolio-matrix-intro">
               <h3>Status Overview</h3>
-              <div className="muted">Select a status to drill into the portfolio items below</div>
+              <p>Select a status to drill into the portfolio items below</p>
             </div>
 
-            <div className="portfolio-status-visual" role="list" aria-label="Portfolio items by status">
-              {projectsByStatus.map((statusGroup) => {
-                const isSelected = selectedStatusGroup?.key === statusGroup.key;
+            <div className="table-wrap portfolio-status-overview-wrap">
+              <table className="simple-table portfolio-status-overview-table" aria-label="Portfolio items by status">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projectsByStatus.map((statusGroup) => {
+                    const isSelected = selectedStatusGroup?.key === statusGroup.key;
 
-                return (
-                  <button
-                    key={statusGroup.key}
-                    type="button"
-                    className={`portfolio-status-bar tone-${statusGroup.tone}${isSelected ? ' is-selected' : ''}`}
-                    onClick={() => setSelectedStatus((current) => (
-                      current === statusGroup.key ? null : statusGroup.key
-                    ))}
-                    aria-pressed={isSelected}
-                  >
-                    <span className="portfolio-status-bar-header">
-                      <span className="portfolio-status-bar-label">{statusGroup.label}</span>
-                      <span className="portfolio-status-bar-count">{statusGroup.count}</span>
-                    </span>
-                  </button>
-                );
-              })}
+                    return (
+                      <tr key={statusGroup.key}>
+                        <th scope="row" className="portfolio-status-overview-label">
+                          {statusGroup.label}
+                        </th>
+                        <td className="portfolio-status-overview-count-cell">
+                          <button
+                            type="button"
+                            className={`owner-status-count tone-${statusGroup.tone}${statusGroup.count === 0 ? ' is-empty' : ''}${isSelected ? ' is-selected' : ''}`}
+                            onClick={() => {
+                              setSelectedOwnerStatusCell(null);
+                              setSelectedOwnerRow(null);
+                              setSelectedPriorityStatusCell(null);
+                              setSelectedStatus((current) => (
+                                current === statusGroup.key ? null : statusGroup.key
+                              ));
+                            }}
+                            aria-pressed={isSelected}
+                          >
+                            {statusGroup.count}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
           <div className="portfolio-dashboard-visual-card portfolio-owner-matrix visual-band-owner">
-            <div className="panel-header-row">
-              <h3>Business Owner Status Matrix</h3>
-              <div className="muted">Select a count to drill into that owner and status combination</div>
+            <div className="portfolio-matrix-intro">
+              <h3>{ownerMatrixTitle}</h3>
+              <p>{ownerMatrixSubtitle}</p>
             </div>
 
             <div className="table-wrap portfolio-owner-matrix-wrap">
@@ -720,7 +762,21 @@ export default function PortfolioDashboardPage() {
                 <tbody>
                   {businessOwnerStatusMatrix.map((row) => (
                     <tr key={row.owner}>
-                      <th scope="row">{row.owner}</th>
+                      <th scope="row">
+                        <button
+                          type="button"
+                          className={`owner-status-total${selectedOwnerRow === row.owner ? ' is-selected' : ''}`}
+                          onClick={() => {
+                            setSelectedStatus(null);
+                            setSelectedPriorityStatusCell(null);
+                            setSelectedOwnerStatusCell(null);
+                            setSelectedOwnerRow((current) => (current === row.owner ? null : row.owner));
+                          }}
+                          aria-pressed={selectedOwnerRow === row.owner}
+                        >
+                          {row.owner}
+                        </button>
+                      </th>
                       {DELIVERY_STATUS_VISUAL_CONFIG.map((statusConfig) => {
                         const isSelected = selectedOwnerStatusGroup?.owner === row.owner
                           && selectedOwnerStatusGroup.statusKey === statusConfig.key;
@@ -729,12 +785,17 @@ export default function PortfolioDashboardPage() {
                           <td key={`${row.owner}-${statusConfig.key}`}>
                             <button
                               type="button"
-                              className={`owner-status-count tone-${statusConfig.tone}${isSelected ? ' is-selected' : ''}`}
-                              onClick={() => setSelectedOwnerStatusCell((current) => (
-                                current?.owner === row.owner && current?.statusKey === statusConfig.key
-                                  ? null
-                                  : { owner: row.owner, statusKey: statusConfig.key }
-                              ))}
+                              className={`owner-status-count tone-${statusConfig.tone}${row[statusConfig.key] === 0 ? ' is-empty' : ''}${isSelected ? ' is-selected' : ''}`}
+                              onClick={() => {
+                                setSelectedStatus(null);
+                                setSelectedPriorityStatusCell(null);
+                                setSelectedOwnerRow(null);
+                                setSelectedOwnerStatusCell((current) => (
+                                  current?.owner === row.owner && current?.statusKey === statusConfig.key
+                                    ? null
+                                    : { owner: row.owner, statusKey: statusConfig.key }
+                                ));
+                              }}
                               aria-pressed={isSelected}
                             >
                               {row[statusConfig.key]}
@@ -755,9 +816,9 @@ export default function PortfolioDashboardPage() {
           </div>
 
           <div className="portfolio-dashboard-visual-card portfolio-priority-matrix visual-band-priority">
-            <div className="panel-header-row">
+            <div className="portfolio-matrix-intro">
               <h3>Strategic Priority Status</h3>
-              <div className="muted">Select a count to drill into that strategic priority and status combination</div>
+              <p>Select a count to drill into that strategic priority and status combination</p>
             </div>
 
             <div className="table-wrap portfolio-priority-matrix-wrap">
@@ -784,12 +845,17 @@ export default function PortfolioDashboardPage() {
                           <td key={`${row.priority}-${statusConfig.key}`}>
                             <button
                               type="button"
-                              className={`owner-status-count tone-${statusConfig.tone}${isSelected ? ' is-selected' : ''}`}
-                              onClick={() => setSelectedPriorityStatusCell((current) => (
-                                current?.priority === row.priority && current?.statusKey === statusConfig.key
-                                  ? null
-                                  : { priority: row.priority, statusKey: statusConfig.key }
-                              ))}
+                              className={`owner-status-count tone-${statusConfig.tone}${row[statusConfig.key] === 0 ? ' is-empty' : ''}${isSelected ? ' is-selected' : ''}`}
+                              onClick={() => {
+                                setSelectedStatus(null);
+                                setSelectedOwnerRow(null);
+                                setSelectedOwnerStatusCell(null);
+                                setSelectedPriorityStatusCell((current) => (
+                                  current?.priority === row.priority && current?.statusKey === statusConfig.key
+                                    ? null
+                                    : { priority: row.priority, statusKey: statusConfig.key }
+                                ));
+                              }}
                               aria-pressed={isSelected}
                             >
                               {row[statusConfig.key]}

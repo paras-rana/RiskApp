@@ -92,7 +92,6 @@ export default function CreateStrategicPriorityPeriodPage() {
     <AppFrame
       title="Create Priority Period"
       description="Create a new active strategic priority period with the full set of priorities that should apply for project alignment."
-      detailLabel="Create Priority Period"
       topNavActions={(
         <Link className="secondary-btn" to="/ppm/strategic-priorities">
           Back To Strategic Priorities
